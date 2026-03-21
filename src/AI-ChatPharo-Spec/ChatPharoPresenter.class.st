@@ -146,12 +146,6 @@ ChatPharoPresenter >> initializePresenters [
 			 yourself).
 
 	toolbar add: (SpToolbarButtonPresenter new
-			 label: 'Delete Chat';
-			 icon: (self iconNamed: #delete);
-			 help: 'Delete the selected chat';
-			 action: [ self deleteSelectedChat ];
-			 yourself).
-	toolbar add: (SpToolbarButtonPresenter new
 			 label: 'Delete All';
 			 icon: (self iconNamed: #delete);
 			 help: 'Delete all chats';
