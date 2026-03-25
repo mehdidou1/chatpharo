@@ -1631,7 +1631,6 @@ ChatPharoBrowserEnvironment >> initializeWithEnvironment: env [
 		         self functionDeleteAllTemporalTools.
 		         self functionListTemporalTools.
 		
-				   ChatPharoClient toolCheckSyntax.
 		         ChatPharoClient toolCheckSyntax.
 		         ChatPharoClient toolOpenPlayground.
 		
