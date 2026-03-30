@@ -78,6 +78,7 @@ ChatPharoChatPresenter >> connectPresenters [
 			cancelButton visible: false.
 			messageTextField text: ''.
 			messageTextField enabled: true.
+			messageTextField takeKeyboardFocus.
 			self updateSubmitButtonState ].
 
 	newChatButton action: [
@@ -109,6 +110,7 @@ ChatPharoChatPresenter >> connectPresenters [
 			messageTextField text: ''.
 			self updateSubmitButtonState.
 			messageTextField enabled: true.
+			messageTextField takeKeyboardFocus.
 			ChatPharoLogger logFrontend: 'Assistant message rendered' details: (Dictionary new
 					 at: 'chatId' put: model identityHash;
 					 at: 'assistantLabel' put: message assistantLabel;
@@ -129,6 +131,7 @@ ChatPharoChatPresenter >> connectPresenters [
 			self showError: errorMessage.
 			self updateSubmitButtonState.
 			messageTextField enabled: true.
+			messageTextField takeKeyboardFocus.
 			ChatPharoLogger logFrontend: 'Error displayed in transcript' details: (Dictionary new
 					 at: 'chatId' put: model identityHash;
 					 at: 'error' put: errorMessage;
@@ -307,6 +310,7 @@ ChatPharoChatPresenter >> reloadMessages [
 	messageTextField text: ''.
 	cancelButton visible: false.
 	messageTextField enabled: true.
+	messageTextField takeKeyboardFocus.
 	self updateSubmitButtonState
 ]
 
