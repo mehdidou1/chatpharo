@@ -21,33 +21,39 @@ IceTipCommentPanel >> buildCommitPrompt [
 
 { #category : '*AI-ChatPharo-Env' }
 IceTipCommentPanel >> chatpharo [
-	"Generates a commit message using the configured ChatPharo agent and displays it in the commentText."
 
 	| prompt agent chat |
 	prompt := self buildCommitPrompt.
 	prompt ifEmpty: [
 		self defer: [ commentText text: '(No changes detected)' ].
 		^ self ].
+
 	agent := ChatPharoSettings default agent.
 	agent := (agent isKindOf: ChatPharoAgent)
-				 ifTrue: [ agent copyForChat ]
-				 ifFalse: [ agent ].
+		ifTrue: [ agent copyForChat ]
+		ifFalse: [ agent ].
+
 	(agent respondsTo: #systemPrompt:) ifTrue: [
 		agent systemPrompt: self commitMessageSystemPrompt ].
+
 	self defer: [ commentText text: 'Generating commit message...' ].
+
 	chat := ChatPharoChat new
-				 agent: agent;
-				 yourself.
+		agent: agent;
+		yourself.
+
 	chat whenAnswerReceivedDo: [ :message |
-		self defer: [ commentText text: message answer ] ].
+		self defer: [
+			commentText text: (self sanitizeGeneratedCommitMessage: message answer) ] ].
+
 	chat whenErrorReceivedDo: [ :errorMsg |
-		self defer: [ commentText text: 'Error: ' , errorMsg ] ].
+		self defer: [ commentText text: 'Error: ', errorMsg ] ].
+
 	chat sendMessage: prompt
 ]
 
 { #category : '*AI-ChatPharo-Env' }
 IceTipCommentPanel >> commitMessageSystemPrompt [
-
 	^ String streamContents: [ :stream |
 		stream
 			<< 'You are a Pharo developer generating an Iceberg commit message based on a diff.';
@@ -56,7 +62,8 @@ IceTipCommentPanel >> commitMessageSystemPrompt [
 			<< String lf;
 			<< ChatPharoSettings default commitMessageTemplate;
 			<< String lf;
-			<< 'Pick one prefix (#feat:, #fix:, #refactor:, #chore:, #comment:) and write an imperative concise message.' ]
+			<< 'Pick one prefix (feat:, fix:, refactor:, chore:, comment:) and write an imperative concise message.' ]
+
 ]
 
 { #category : '*AI-ChatPharo-Env' }
@@ -134,4 +141,16 @@ IceTipCommentPanel >> initializePresenters [
 		icon: (self iconNamed: #smallOk);
 		help: ('Commit your changes to {1}' format: { self repositoryName });
 		yourself)
+]
+
+{ #category : '*AI-ChatPharo-Env' }
+IceTipCommentPanel >> sanitizeGeneratedCommitMessage: aString [
+	| text |
+	text := aString asString trimBoth.
+
+	(#('#feat:' '#fix:' '#refactor:' '#chore:' '#comment:')
+		anySatisfy: [ :prefix | text beginsWith: prefix ])
+		ifTrue: [ ^ text allButFirst ].
+
+	^ text
 ]
