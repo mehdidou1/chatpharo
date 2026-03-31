@@ -1,9 +1,62 @@
 Extension { #name : 'IceTipCommentPanel' }
 
 { #category : '*AI-ChatPharo-Env' }
-IceTipCommentPanel >> chatpharo [
+IceTipCommentPanel >> buildCommitPrompt [
+	"Build a prompt string by iterating through the working copy diff tree roots and their children."
 
-	self inform: 'chatpharo'
+	^ String streamContents: [ :stream |
+		self repositoryModel workingCopyDiff treeRoots do: [ :root |
+			root allChildrenDo: [ :child |
+				(child value respondsTo: #printOnLLMQuery:) ifTrue: [
+					stream
+						<< 'On: ';
+						<< child key;
+						<< String lf.
+					child value printOnLLMQuery: stream.
+					stream
+						<< String lf;
+						<< '---';
+						<< String lf ] ] ] ]
+]
+
+{ #category : '*AI-ChatPharo-Env' }
+IceTipCommentPanel >> chatpharo [
+	"Generates a commit message using the configured ChatPharo agent and displays it in the commentText."
+
+	| prompt agent chat |
+	prompt := self buildCommitPrompt.
+	prompt ifEmpty: [
+		self defer: [ commentText text: '(No changes detected)' ].
+		^ self ].
+	agent := ChatPharoSettings default agent.
+	agent := (agent isKindOf: ChatPharoAgent)
+				 ifTrue: [ agent copyForChat ]
+				 ifFalse: [ agent ].
+	(agent respondsTo: #systemPrompt:) ifTrue: [
+		agent systemPrompt: self commitMessageSystemPrompt ].
+	self defer: [ commentText text: 'Generating commit message...' ].
+	chat := ChatPharoChat new
+				 agent: agent;
+				 yourself.
+	chat whenAnswerReceivedDo: [ :message |
+		self defer: [ commentText text: message answer ] ].
+	chat whenErrorReceivedDo: [ :errorMsg |
+		self defer: [ commentText text: 'Error: ' , errorMsg ] ].
+	chat sendMessage: prompt
+]
+
+{ #category : '*AI-ChatPharo-Env' }
+IceTipCommentPanel >> commitMessageSystemPrompt [
+
+	^ String streamContents: [ :stream |
+		stream
+			<< 'You are a Pharo developer generating an Iceberg commit message based on a diff.';
+			<< String lf;
+			<< 'Follow this commit template format and return ONLY the final commit message line:';
+			<< String lf;
+			<< ChatPharoSettings default commitMessageTemplate;
+			<< String lf;
+			<< 'Pick one prefix (#feat:, #fix:, #refactor:, #chore:, #comment:) and write an imperative concise message.' ]
 ]
 
 { #category : '*AI-ChatPharo-Env' }

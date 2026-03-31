@@ -10,31 +10,6 @@ Class {
 }
 
 { #category : 'private' }
-ChatPharoIceTipCommentPanel >> appendResultText: aString [
-
-	self defer: [ commentText text: aString ]
-]
-
-{ #category : 'private' }
-ChatPharoIceTipCommentPanel >> buildPrompt [
-	"Build a prompt string by iterating through the working copy diff tree roots and their children."
-
-	^ String streamContents: [ :stream |
-		self owner model workingCopyDiff treeRoots do: [ :root |
-			root allChildrenDo: [ :child |
-				(child value respondsTo: #printOnLLMQuery:) ifTrue: [
-					stream
-						<< 'On: ';
-						<< child key;
-						<< String lf.
-					child value printOnLLMQuery: stream.
-					stream
-						<< String lf;
-						<< '---';
-						<< String lf ] ] ] ]
-]
-
-{ #category : 'private' }
 ChatPharoIceTipCommentPanel >> commitMessageSystemPrompt [
 
 	^ String streamContents: [ :stream |
@@ -64,27 +39,8 @@ ChatPharoIceTipCommentPanel >> defaultLayout [
 
 { #category : 'private' }
 ChatPharoIceTipCommentPanel >> generateCommitMessage [
-	"Generates a commit message using the configured ChatPharo agent and displays it in the commentText."
-
-	| prompt agent chat |
-	prompt := self buildPrompt.
-	prompt ifEmpty: [
-		self defer: [ commentText text: '(No changes detected)' ].
-		^ self ].
-	agent := ChatPharoSettings default agent.
-	agent := (agent isKindOf: ChatPharoAgent)
-				 ifTrue: [ agent copyForChat ]
-				 ifFalse: [ agent ].
-	(agent respondsTo: #systemPrompt:) ifTrue: [
-		agent systemPrompt: self commitMessageSystemPrompt ].
-	self defer: [ commentText text: 'Generating commit message...' ].
-	chat := ChatPharoChat new
-				 agent: agent;
-				 yourself.
-	chat whenAnswerReceivedDo: [ :message | self appendResultText: message answer ].
-	chat whenErrorReceivedDo: [ :errorMsg |
-		self defer: [ commentText text: 'Error: ' , errorMsg ] ].
-	chat sendMessage: prompt
+		
+	self chatpharo
 ]
 
 { #category : 'initialization' }
