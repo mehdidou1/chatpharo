@@ -60,16 +60,15 @@ ChatPharoThinkingPresenterTest >> testFormattedElapsedThinkingTime [
 
 { #category : 'running' }
 ChatPharoThinkingPresenterTest >> testPhaseFinishedUpdatesStatusWithElapsedTime [
-
-	| statusText |
+| buttonLabel |
 	presenter
 		instVarNamed: #thinkingStartedAt
 		put: DateAndTime now - (Duration seconds: 65).
 
 	presenter phase: #finished.
-	statusText := (presenter instVarNamed: #statusLabel) label.
-
-	self assert: (statusText includesSubstring: 'End of thinking (1 min 5 sec (65s total))')
+	buttonLabel := (presenter instVarNamed: #thinkingButton) label.
+self assert: (buttonLabel includesSubstring: 'Done').
+	self assert: (buttonLabel includesSubstring: '65s')
 ]
 
 { #category : 'running' }

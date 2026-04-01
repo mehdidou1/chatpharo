@@ -2,18 +2,14 @@ Class {
 	#name : 'ChatPharoThinkingPresenter',
 	#superclass : 'SpPresenter',
 	#instVars : [
-		'statusLabel',
-		'dotsLabel',
+		'thinkingButton',
 		'animationProcess',
 		'currentPhase',
-		'showDetailsButton',
-		'hideButton',
 		'thinkingContent',
 		'thinkingStartedAt',
 		'thinkingElapsedSeconds',
-		'modelNameLabel',
 		'executedTools',
-		'toolsLabel'
+		'detailWindow'
 	],
 	#category : 'AI-ChatPharo-Spec-Ethics',
 	#package : 'AI-ChatPharo-Spec',
@@ -26,7 +22,9 @@ ChatPharoThinkingPresenter >> addExecutedTool: aToolName [
 
 	aToolName ifNil: [ ^ self ].
 	executedTools add: aToolName.
-	self updateToolsLabel
+	self updateButtonLabel.
+	detailWindow ifNotNil: [ :w |
+		w presenter updateDetails ]
 ]
 
 { #category : 'initialization' }
@@ -53,24 +51,22 @@ ChatPharoThinkingPresenter >> clearExecutedTools [
 	"Clear the list of executed tools"
 
 	executedTools removeAll.
-	self updateToolsLabel
+	self updateButtonLabel
 ]
 
 { #category : 'layout' }
 ChatPharoThinkingPresenter >> defaultLayout [
 
-	| layout |
-	layout := SpBoxLayout newHorizontal
-		          spacing: 5;
-		          vAlignCenter;
-		          add: modelNameLabel expand: false;
-		          add: statusLabel expand: false;
-		          add: dotsLabel expand: false;
-		          add: toolsLabel expand: false;
-		          yourself.
-	self shouldShowThinkingUI ifTrue: [ layout add: showDetailsButton expand: false ].
-layout add: hideButton expand: false.
-	^ layout
+	^ SpBoxLayout newHorizontal
+		  vAlignCenter;
+		  add: thinkingButton expand: true;
+		  yourself
+]
+
+{ #category : 'layout' }
+ChatPharoThinkingPresenter >> executedTools [
+
+	^ executedTools
 ]
 
 { #category : 'initialization' }
@@ -93,16 +89,6 @@ ChatPharoThinkingPresenter >> formattedElapsedThinkingTime [
 ]
 
 { #category : 'initialization' }
-ChatPharoThinkingPresenter >> hideThinking [
-	| chatPresenter |
-	chatPresenter := self owner.
-	[ chatPresenter isNotNil and: [ chatPresenter class name ~= #ChatPharoChatPresenter ] ]
-		whileTrue: [ chatPresenter := chatPresenter owner ].
-
-	chatPresenter ifNotNil: [ chatPresenter hideThinking ]
-]
-
-{ #category : 'initialization' }
 ChatPharoThinkingPresenter >> initialize [
 
 	super initialize.
@@ -115,32 +101,12 @@ ChatPharoThinkingPresenter >> initialize [
 { #category : 'initialization' }
 ChatPharoThinkingPresenter >> initializePresenters [
 
-	statusLabel := self newLabel
-		               label: 'Thinking';
-		               yourself.
-	modelNameLabel := self newLabel
-		                  label: self modelNameLabelText;
-		                  help: 'Current model used for this chat';
-		                  yourself.
-
-	dotsLabel := self newLabel
-		             label: '';
-		             yourself.
-	showDetailsButton := self newButton
-		                     label: 'Show Details';
-		                     action: [ self openThinkingDetails ];
-		                     yourself.
-
-	hideButton := self newButton
-		              label: 'Hide thinking';
-		              help: 'Hide thinking indicator';
-		              action: [ self hideThinking ];
-		              yourself.
-
-
-	toolsLabel := self newLabel
-		              label: '';
-		              yourself
+thinkingButton := self newButton
+		label: 'Thinking...';
+		icon: (self iconNamed: #smallInfo);
+		help: 'Click to view thinking details, tools, and stats';
+		action: [ self openThinkingDetails ];
+		yourself
 ]
 
 { #category : 'initialization' }
@@ -150,7 +116,7 @@ ChatPharoThinkingPresenter >> isFinished [
 ]
 
 { #category : 'initialization' }
-ChatPharoThinkingPresenter >> modelNameLabelText [
+ChatPharoThinkingPresenter >> modelNameText [
 
 	| currentAgent modelName |
 	currentAgent := self agent.
@@ -158,32 +124,37 @@ ChatPharoThinkingPresenter >> modelNameLabelText [
 		             ifTrue: [ currentAgent model ]
 		             ifFalse: [ '' ].
 	modelName ifNil: [ modelName := '' ].
-	modelName := modelName asString trimBoth.
-
-	^ 'Model: ' , (modelName ifEmpty: [ 'Not selected' ])
+^ modelName asString trimBoth
 ]
 
 { #category : 'initialization' }
 ChatPharoThinkingPresenter >> openThinkingDetails [
-	"Open a new window to display the detailed thinking content"
 	| detailPresenter |
-	
-	"Don't open if agent doesn't support thinking"
-	self shouldShowThinkingUI ifFalse: [ ^ self ].
-	
 	detailPresenter := ChatPharoThinkingDetailPresenter new.
-	detailPresenter thinkingContent: self thinkingContent.
-	detailPresenter open
+	detailPresenter
+		thinkingPresenter: self.
+	detailWindow := detailPresenter open.
+	detailWindow whenClosedDo: [ detailWindow := nil ]
 ]
 
 { #category : 'initialization' }
 ChatPharoThinkingPresenter >> phase: aSymbol [
-	"Set the current phase and update display.
-	Valid phases: #thinking, #executing, #analyzing, #searching, #finished"
 
-	currentPhase := aSymbol.
-	aSymbol = #finished ifTrue: [ self updateElapsedThinkingTime ].
-	self updateStatusLabel
+	self updateButtonLabel.
+	detailWindow ifNotNil: [ :w | w presenter updateDetails ]
+]
+
+{ #category : 'initialization' }
+ChatPharoThinkingPresenter >> phaseText [
+
+	^ currentPhase
+		caseOf: {
+			([ #thinking ]  -> [ 'Thinking' ]).
+			([ #executing ] -> [ 'Executing tools' ]).
+			([ #analyzing ] -> [ 'Analyzing' ]).
+			([ #searching ] -> [ 'Searching code' ]).
+			([ #finished ]  -> [ 'Done' ]) }
+		otherwise: [ 'Thinking' ]
 ]
 
 { #category : 'asserting' }
@@ -195,21 +166,20 @@ ChatPharoThinkingPresenter >> shouldShowThinkingUI [
 
 { #category : 'initialization' }
 ChatPharoThinkingPresenter >> startAnimation [
-	"Start the animated dots"
-
-	animationProcess ifNotNil: [ animationProcess terminate ].
+animationProcess ifNotNil: [ animationProcess terminate ].
 	thinkingStartedAt := DateAndTime now.
 	thinkingElapsedSeconds := 0.
 	self clearExecutedTools.
 	animationProcess := [
-		                    | dots |
-		                    dots := 0.
-		                    [ true ] whileTrue: [
-				                    dots := dots + 1 \\ 4.
-				                    dotsLabel label: ('.' repeat: dots).
-				                    thinkingElapsedSeconds := (DateAndTime now - thinkingStartedAt) asSeconds rounded max: 0.
-				                    self updateStatusLabel.
-				                    (Delay forMilliseconds: 400) wait ] ] fork
+		| dots |
+		dots := 0.
+		[ true ] whileTrue: [
+			dots := dots + 1 \\ 4.
+			thinkingElapsedSeconds := (DateAndTime now - thinkingStartedAt) asSeconds rounded max: 0.
+			self updateButtonLabel.
+			detailWindow ifNotNil: [ :w |
+				w presenter updateDetails ].
+			(Delay forMilliseconds: 400) wait ] ] fork
 ]
 
 { #category : 'initialization' }
@@ -217,9 +187,8 @@ ChatPharoThinkingPresenter >> stopAnimation [
 	"Stop the animated dots"
 
 	animationProcess ifNotNil: [
-		animationProcess terminate.
-		animationProcess := nil ].
-	dotsLabel label: ''
+			animationProcess terminate.
+animationProcess := nil ]
 ]
 
 { #category : 'initialization' }
@@ -233,7 +202,36 @@ ChatPharoThinkingPresenter >> thinkingContent [
 ChatPharoThinkingPresenter >> thinkingContent: aString [
 	"Set the thinking content"
 
-	thinkingContent := aString
+	thinkingContent := aString.
+		detailWindow ifNotNil: [ :w |
+		w presenter updateDetails ]
+]
+
+{ #category : 'initialization' }
+ChatPharoThinkingPresenter >> thinkingElapsedSeconds [
+
+	^ thinkingElapsedSeconds
+]
+
+{ #category : 'initialization' }
+ChatPharoThinkingPresenter >> updateButtonLabel [
+	"Update the single button label with compact status"
+
+	| label |
+	label := String streamContents: [ :stream |
+		stream nextPutAll: self phaseText.
+		thinkingElapsedSeconds > 0 ifTrue: [
+			stream
+				nextPutAll: ' (';
+				nextPutAll: thinkingElapsedSeconds asString;
+				nextPutAll: 's)' ].
+		executedTools ifNotEmpty: [
+			stream
+				nextPutAll: ' | ';
+				nextPutAll: executedTools size asString;
+				nextPutAll: ' tool';
+				nextPutAll: (executedTools size > 1 ifTrue: [ 's' ] ifFalse: [ '' ]) ] ].
+	thinkingButton label: label
 ]
 
 { #category : 'initialization' }
@@ -245,37 +243,4 @@ ChatPharoThinkingPresenter >> updateElapsedThinkingTime [
 		^ self ].
 
 	thinkingElapsedSeconds := (((DateAndTime now - thinkingStartedAt) asSeconds rounded) max: 0)
-]
-
-{ #category : 'initialization' }
-ChatPharoThinkingPresenter >> updateStatusLabel [
-    "Update the status label based on current phase"
-
-    | phaseText text |
-
-    phaseText := currentPhase
-        caseOf: {
-            ([ #thinking ]  -> [ 'Thinking' ]).
-            ([ #executing ] -> [ 'Executing tools' ]).
-            ([ #analyzing ] -> [ 'Analyzing' ]).
-            ([ #searching ] -> [ 'Searching code' ]).
-            ([ #finished ]  -> [ 'End of thinking' ]) }
-        otherwise: [ 'Thinking' ].
-
-    text := phaseText , ' (' , self formattedElapsedThinkingTime , ')'.
-
-    modelNameLabel label: self modelNameLabelText.
-    statusLabel label: text.
-
-]
-
-{ #category : 'initialization' }
-ChatPharoThinkingPresenter >> updateToolsLabel [
-	"Update the tools label showing which tools have been executed"
-
-	executedTools ifEmpty: [
-		toolsLabel label: ''.
-		^ self ].
-
-	toolsLabel label: '| Tools: ' , (', ' join: executedTools)
 ]
