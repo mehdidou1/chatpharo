@@ -56,6 +56,6 @@ StAskChatPharoFromDebuggerCommand >> execute [
 
 	| method settings |
 	method := self debugger stackSelectionMethod ifNil: [ ^ self ].
-settings := ChatPharoSettings default.
-	ChatPharo askAboutMethod: method withSystemPrompt: settings debuggerSystemPrompt
+	settings := ChatPharoSettings default.
+		ChatPharo askAboutMethod: method withSystemPrompt: settings debuggerSystemPrompt
 ]
