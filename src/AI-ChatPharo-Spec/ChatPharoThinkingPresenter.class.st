@@ -15,7 +15,10 @@ Class {
 		'thinkingStartedAt',
 		'thinkingElapsedSeconds',
 		'executedTools',
-		'detailWindow'
+		'detailWindow',
+		'inputTokens',
+		'outputTokens',
+		'totalTokens'
 	],
 	#category : 'AI-ChatPharo-Spec-Ethics',
 	#package : 'AI-ChatPharo-Spec',
@@ -101,7 +104,10 @@ ChatPharoThinkingPresenter >> initialize [
 	currentPhase := #thinking.
 	thinkingStartedAt := nil.
 	thinkingElapsedSeconds := 0.
-	executedTools := OrderedCollection new
+	executedTools := OrderedCollection new.
+	inputTokens := nil.
+	outputTokens := nil.
+	totalTokens := nil
 ]
 
 { #category : 'initialization' }
@@ -113,6 +119,18 @@ thinkingButton := self newButton
 		help: 'Click to view thinking details, tools, and stats';
 		action: [ self openThinkingDetails ];
 		yourself
+]
+
+{ #category : 'initialization' }
+ChatPharoThinkingPresenter >> inputTokens [
+
+	^ inputTokens
+]
+
+{ #category : 'initialization' }
+ChatPharoThinkingPresenter >> inputTokens: anInteger [
+
+	inputTokens := anInteger
 ]
 
 { #category : 'initialization' }
@@ -144,6 +162,18 @@ ChatPharoThinkingPresenter >> openThinkingDetails [
 ]
 
 { #category : 'initialization' }
+ChatPharoThinkingPresenter >> outputTokens [
+
+	^ outputTokens
+]
+
+{ #category : 'initialization' }
+ChatPharoThinkingPresenter >> outputTokens: anInteger [
+
+	outputTokens := anInteger
+]
+
+{ #category : 'initialization' }
 ChatPharoThinkingPresenter >> phase: aSymbol [
 
 	currentPhase := aSymbol.
@@ -164,6 +194,17 @@ ChatPharoThinkingPresenter >> phaseText [
 			([ #searching ] -> [ 'Searching code' ]).
 			([ #finished ]  -> [ 'Done' ]) }
 		otherwise: [ 'Thinking' ]
+]
+
+{ #category : 'initialization' }
+ChatPharoThinkingPresenter >> remainingTokenBudgetText [
+
+	| budget remaining |
+	budget := ChatPharoSettings default ethicsDirector tokenBudget.
+	(budget isNil or: [ totalTokens isNil ]) ifTrue: [ ^ '' ].
+	(budget isNumber and: [ totalTokens isNumber ]) ifFalse: [ ^ '' ].
+	remaining := budget - totalTokens.
+	^ (remaining max: 0) asString , ' left'
 ]
 
 { #category : 'asserting' }
@@ -223,23 +264,44 @@ ChatPharoThinkingPresenter >> thinkingElapsedSeconds [
 ]
 
 { #category : 'initialization' }
+ChatPharoThinkingPresenter >> totalTokens [
+
+	^ totalTokens
+]
+
+{ #category : 'initialization' }
+ChatPharoThinkingPresenter >> totalTokens: anInteger [
+
+	totalTokens := anInteger
+]
+
+{ #category : 'initialization' }
 ChatPharoThinkingPresenter >> updateButtonLabel [
 	"Update the single button label with compact status"
 
 	| label |
 	label := String streamContents: [ :stream |
-		stream nextPutAll: self phaseText.
-		thinkingElapsedSeconds > 0 ifTrue: [
-			stream
-				nextPutAll: ' (';
-				nextPutAll: thinkingElapsedSeconds asString;
-				nextPutAll: 's)' ].
-		executedTools ifNotEmpty: [
+			         stream nextPutAll: self phaseText.
+			         thinkingElapsedSeconds > 0 ifTrue: [
+					         stream
+						         nextPutAll: ' (';
+						         nextPutAll: thinkingElapsedSeconds asString;
+						         nextPutAll: 's)' ].
+			         executedTools ifNotEmpty: [
+					         stream
+						         nextPutAll: ' | ';
+						         nextPutAll: executedTools size asString;
+						         nextPutAll: ' tool';
+						       nextPutAll: (executedTools size > 1 ifTrue: [ 's' ] ifFalse: [ '' ]) ].
+		totalTokens ifNotNil: [ :t |
 			stream
 				nextPutAll: ' | ';
-				nextPutAll: executedTools size asString;
-				nextPutAll: ' tool';
-				nextPutAll: (executedTools size > 1 ifTrue: [ 's' ] ifFalse: [ '' ]) ] ].
+				nextPutAll: t asString;
+				nextPutAll: ' used' ].
+		self remainingTokenBudgetText ifNotEmpty: [ :remaining |
+			stream
+				nextPutAll: ' | ';
+				nextPutAll: remaining ] ].
 	thinkingButton label: label
 ]
 
@@ -252,4 +314,15 @@ ChatPharoThinkingPresenter >> updateElapsedThinkingTime [
 		^ self ].
 
 	thinkingElapsedSeconds := (((DateAndTime now - thinkingStartedAt) asSeconds rounded) max: 0)
+]
+
+{ #category : 'initialization' }
+ChatPharoThinkingPresenter >> updateTokenUsageFrom: aMessage [
+	"Update token usage from a ChatPharoMessage"
+
+	inputTokens := aMessage inputTokens.
+	outputTokens := aMessage outputTokens.
+	totalTokens := aMessage totalTokens.
+	self updateButtonLabel.
+	detailWindow ifNotNil: [ :w | w presenter updateDetails ]
 ]

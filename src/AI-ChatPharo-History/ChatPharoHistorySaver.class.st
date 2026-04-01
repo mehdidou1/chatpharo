@@ -9,7 +9,10 @@ Class {
 		'content',
 		'toolCalls',
 		'toolCallId',
-		'thinking'
+		'thinking',
+		'inputTokens',
+		'outputTokens',
+		'totalTokens'
 	],
 	#category : 'AI-ChatPharo-History',
 	#package : 'AI-ChatPharo-History'
@@ -58,6 +61,30 @@ ChatPharoHistorySaver >> historyStringOn: strm [
                 nextPutAll: ': ';
                 nextPutAll: (content ifNil: [ '' ]);
                 cr
+]
+
+{ #category : 'accessing' }
+ChatPharoHistorySaver >> inputTokens [
+
+	^ inputTokens
+]
+
+{ #category : 'accessing' }
+ChatPharoHistorySaver >> inputTokens: anInteger [
+
+	inputTokens := anInteger
+]
+
+{ #category : 'accessing' }
+ChatPharoHistorySaver >> outputTokens [
+
+	^ outputTokens
+]
+
+{ #category : 'accessing' }
+ChatPharoHistorySaver >> outputTokens: anInteger [
+
+	outputTokens := anInteger
 ]
 
 { #category : 'history' }
@@ -120,4 +147,16 @@ ChatPharoHistorySaver >> toolCalls [
 ChatPharoHistorySaver >> toolCalls: anObject [
 
 	toolCalls := anObject
+]
+
+{ #category : 'accessing' }
+ChatPharoHistorySaver >> totalTokens [
+
+	^ totalTokens
+]
+
+{ #category : 'accessing' }
+ChatPharoHistorySaver >> totalTokens: anInteger [
+
+	totalTokens := anInteger
 ]

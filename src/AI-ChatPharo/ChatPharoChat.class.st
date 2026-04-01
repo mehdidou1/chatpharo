@@ -51,20 +51,28 @@ ChatPharoChat >> addAnswerReceivedHandler: aBlock [
 { #category : 'running' }
 ChatPharoChat >> addAssistantMessage: anAnswer [
 
-	| label multivers thinking answerText |
-	"Note: history is already updated by the agent's getResponseForPrompt: method
-	Determine label based on mode"
+	| label multivers thinking answerText inTok outTok totTok |
 	thinking := nil.
-	answerText := anAnswer. "Handle both string and result object"
+	inTok := nil.
+	outTok := nil.
+	totTok := nil.
+	answerText := anAnswer.
 	(answerText respondsTo: #content) ifTrue: [
 			thinking := answerText thinking.
+			(answerText respondsTo: #inputTokens) ifTrue: [
+					inTok := answerText inputTokens.
+					outTok := answerText outputTokens.
+					totTok := answerText totalTokens ].
 			answerText := answerText content ].
 
-(thinking isNil and: [ self agent respondsTo: #response ]) ifTrue: [
-		| agentResponse |
-		agentResponse := self agent response.
-		(agentResponse respondsTo: #thinking) ifTrue: [
-			thinking := agentResponse thinking ] ].
+	(thinking isNil and: [ self agent respondsTo: #response ]) ifTrue: [
+			| agentResponse |
+			agentResponse := self agent response.
+			(agentResponse respondsTo: #thinking) ifTrue: [ thinking := agentResponse thinking ].
+			(inTok isNil and: [ agentResponse respondsTo: #inputTokens ]) ifTrue: [
+					inTok := agentResponse inputTokens.
+					outTok := agentResponse outputTokens.
+					totTok := agentResponse totalTokens ] ].
 
 
 	history addAssistant: answerText.
@@ -79,7 +87,10 @@ ChatPharoChat >> addAssistantMessage: anAnswer [
 	messages last
 		answer: answerText;
 		assistantLabel: label;
-		thinking: (thinking ifNil: [ '' ]).
+		thinking: (thinking ifNil: [ '' ]);
+		inputTokens: inTok;
+		outputTokens: outTok;
+		totalTokens: totTok.
 
 	ChatPharoLogger logBackend: 'Assistant response recorded' details: (Dictionary new
 			 at: 'chatId' put: self identityHash;

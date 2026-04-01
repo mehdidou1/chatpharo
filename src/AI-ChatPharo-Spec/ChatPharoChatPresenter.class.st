@@ -103,6 +103,7 @@ ChatPharoChatPresenter >> connectPresenters [
 
 	model whenAnswerReceivedDo: [ :message |
 			thinkingPresenter thinkingContent: (message thinking ifNil: [ '' ]).
+			thinkingPresenter updateTokenUsageFrom: message.
 			self hideThinking.
 			cancelButton visible: false.
 			submitButton visible: true.
@@ -117,12 +118,12 @@ ChatPharoChatPresenter >> connectPresenters [
 					 yourself) ].
 
 
-	model whenToolExecutionDo: [:toolName |
+	model whenToolExecutionDo: [ :toolName |
 			thinkingPresenter phase: #executing.
 			thinkingPresenter addExecutedTool: toolName.
 			ChatPharoLogger logFrontend: 'Tool execution feedback shown' details: (Dictionary new
 					 at: 'chatId' put: model identityHash;
-					at: 'toolName' put: (toolName ifNil: [ 'unknown' ]);
+					 at: 'toolName' put: (toolName ifNil: [ 'unknown' ]);
 					 yourself) ].
 
 	model whenErrorReceivedDo: [ :errorMessage |

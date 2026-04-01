@@ -246,12 +246,12 @@ ChatPharoTool >> extraHeaders: aDictionary [
 { #category : 'initialization' }
 ChatPharoTool >> getResponseForHistory: history [
 
-	| messages data response message toolCalls thinkingText allTools |
+	| messages data response message toolCalls thinkingText allTools responseJson usage result |
 	messages := Array streamContents: [ :stream |
 			            systemPrompt ifNotNil: [ stream nextPut: (Dictionary with: 'role' -> 'system' with: 'content' -> systemPrompt) ].
 			            history putOpenAIChatMessagesOn: stream ].
 	data := Dictionary with: 'model' -> model with: 'messages' -> messages.
-	extraParameters ifNotNil: [ data addAll: extraParameters ]. "Merge static tools with any temporal tools the model has created"
+	extraParameters ifNotNil: [ data addAll: extraParameters ].
 	allTools := tools ifNil: [ OrderedCollection new ] ifNotNil: [ tools asOrderedCollection copy ].
 	allTools addAll: ChatPharoTemporalToolRegistry current tools.
 	allTools ifNotEmpty: [
@@ -265,8 +265,10 @@ ChatPharoTool >> getResponseForHistory: history [
 		            post;
 		            response.
 	response isSuccess ifFalse: [ Error signal: 'Could not get chat completion' ].
-	message := ((STONJSON fromString: response contents) at: 'choices') first at: 'message'. "Extract tool calls"
-	toolCalls := self toolCallsFromMessage: message. "Build thinking text from tool calls"
+	responseJson := STONJSON fromString: response contents.
+	message := (responseJson at: 'choices') first at: 'message'.
+	usage := responseJson at: 'usage' ifAbsent: [ nil ].
+	toolCalls := self toolCallsFromMessage: message. 
 	thinkingText := nil.
 	toolCalls ifNotNil: [
 			toolCalls ifNotEmpty: [
@@ -292,9 +294,16 @@ ChatPharoTool >> getResponseForHistory: history [
 												                cr ].
 									                stream cr ] ] ] ].
 
-	^ (ChatPharoHistorySaver role: 'assistant' content: (message at: 'content' ifAbsent: [ nil ]) toolCalls: toolCalls)
-		  thinking: thinkingText;
-		  yourself
+	result := (ChatPharoHistorySaver role: 'assistant' content: (message at: 'content' ifAbsent: [ nil ]) toolCalls: toolCalls)
+		          thinking: thinkingText;
+		          yourself.
+	usage ifNotNil: [
+		result inputTokens: (usage at: 'prompt_tokens' ifAbsent: [
+			usage at: 'input_tokens' ifAbsent: [ nil ] ]).
+		result outputTokens: (usage at: 'completion_tokens' ifAbsent: [
+			usage at: 'output_tokens' ifAbsent: [ nil ] ]).
+		result totalTokens: (usage at: 'total_tokens' ifAbsent: [ nil ]) ].
+	^ result
 ]
 
 { #category : 'initialization' }

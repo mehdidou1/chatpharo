@@ -10,10 +10,11 @@ Class {
 		'phaseLabel',
 		'elapsedLabel',
 		'modelLabel',
+		'tokensLabel',
 		'toolsText',
 		'thinkingText',
 		'ethicsSummaryText',
-		'closeButton',
+		'usageText',
 		'notebook'
 	],
 	#category : 'AI-ChatPharo-Spec-Ethics',
@@ -108,19 +109,56 @@ ChatPharoThinkingDetailPresenter >> buildToolsSummary [
 				cr ] ]
 ]
 
+{ #category : 'tools' }
+ChatPharoThinkingDetailPresenter >> buildUsageSummary [
+	"Build a summary of live token usage"
+
+	thinkingPresenter ifNil: [ ^ 'No data available.' ].
+	^ String streamContents: [ :stream |
+		stream
+			nextPutAll: 'Token Usage';
+			cr;
+			nextPutAll: '======================';
+			cr; cr.
+
+		stream
+			nextPutAll: 'Input tokens: ';
+			nextPutAll: (thinkingPresenter inputTokens
+				ifNil: [ '(not available)' ]
+				ifNotNil: [ :v | v asString ]);
+			cr.
+		stream
+			nextPutAll: 'Output tokens: ';
+			nextPutAll: (thinkingPresenter outputTokens
+				ifNil: [ '(not available)' ]
+				ifNotNil: [ :v | v asString ]);
+			cr.
+		stream
+			nextPutAll: 'Total tokens: ';
+			nextPutAll: (thinkingPresenter totalTokens
+				ifNil: [ '(not available)' ]
+				ifNotNil: [ :v | v asString ]);
+			cr.
+		stream
+			nextPutAll: 'Remaining budget: ';
+			nextPutAll: (thinkingPresenter remainingTokenBudgetText ifEmpty: [ '(not available)' ]);
+			cr ]
+]
+
 { #category : 'layout' }
 ChatPharoThinkingDetailPresenter >> defaultLayout [
 
 	^ SpBoxLayout newVertical
-		 spacing: 8;
-		add: (SpBoxLayout newHorizontal
-			spacing: 15;
-			add: phaseLabel expand: false;
-			add: elapsedLabel expand: false;
-			add: modelLabel expand: true;
-			yourself) expand: false;
-		add: notebook;
-		  add: closeButton expand: false;
+		  spacing: 8;
+		  add: (SpBoxLayout newHorizontal
+				   spacing: 15;
+				   add: phaseLabel expand: false;
+				   add: elapsedLabel expand: false;
+			add: modelLabel expand: false;
+			add: tokensLabel expand: true;
+				   yourself)
+		  expand: false;
+		  add: notebook;
 		  yourself
 ]
 
@@ -135,40 +173,43 @@ ChatPharoThinkingDetailPresenter >> initialize [
 ChatPharoThinkingDetailPresenter >> initializePresenters [
 
 	phaseLabel := self newLabel
-		label: 'Phase: --';
-		yourself.
+		              label: 'Phase: --';
+		              yourself.
 
 	elapsedLabel := self newLabel
-		label: 'Elapsed: --';
-		yourself.
+		                label: 'Elapsed: --';
+		                yourself.
 
 	modelLabel := self newLabel
-		label: 'Model: --';
-		yourself.
+		              label: 'Model: --';
+		              yourself.
+
+	tokensLabel := self newLabel
+		               label: 'Tokens: --';
+		               yourself.
+
+	usageText := self newText
+		             editable: false;
+		             yourself.
 
 	toolsText := self newText
-		editable: false;
-		yourself.
+		             editable: false;
+		             yourself.
 
 	thinkingText := self newText
-		editable: false;
-		yourself.
+		                editable: false;
+		                yourself.
 
 	ethicsSummaryText := self newText
-		editable: false;
-		yourself.
+		                     editable: false;
+		                     yourself.
 
 	notebook := self newNotebook
-		addPageTitle: 'Tools' provider: [ toolsText ];
-		addPageTitle: 'Thinking' provider: [ thinkingText ];
-		addPageTitle: 'Ethics Director' provider: [ ethicsSummaryText ];
-		yourself.
-
-	closeButton := self newButton
-		label: 'Close';
-		icon: (self iconNamed: #smallCancel);
-		action: [ self window close ];
-		yourself
+	addPageTitle: 'Usage' provider: [ usageText ];
+		            addPageTitle: 'Tools' provider: [ toolsText ];
+		            addPageTitle: 'Thinking' provider: [ thinkingText ];
+		            addPageTitle: 'Ethics Director' provider: [ ethicsSummaryText ];
+		               yourself
 ]
 
 { #category : 'initialization' }
@@ -199,8 +240,12 @@ ChatPharoThinkingDetailPresenter >> updateDetails [
 
 	modelLabel label: 'Model: ' , (thinkingPresenter modelNameText ifEmpty: [ 'Not selected' ]).
 
+tokensLabel label: 'Tokens: ' , (thinkingPresenter totalTokens
+		ifNil: [ '--' ]
+		ifNotNil: [ :v | v asString ]).
+		
 	toolsText text: self buildToolsSummary.
-
+usageText text: self buildUsageSummary.
 	thinkingText text: (thinkingPresenter thinkingContent ifEmpty: [ 'No thinking content available.' ]).
 
 	ethicsSummaryText text: self buildEthicsSummary

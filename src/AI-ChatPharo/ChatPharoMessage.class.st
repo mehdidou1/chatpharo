@@ -27,7 +27,10 @@ Class {
 		'suggestionRejected',
 		'feedbackTimestamp',
 		'attachments',
-		'thinking'
+		'thinking',
+		'inputTokens',
+		'outputTokens',
+		'totalTokens'
 	],
 	#category : 'AI-ChatPharo',
 	#package : 'AI-ChatPharo'
@@ -146,7 +149,34 @@ ChatPharoMessage >> initialize [
 	suggestionRejected := false.
 	feedbackTimestamp := nil.
 	attachments := OrderedCollection new.
-	thinking := String empty
+	thinking := String empty.
+	inputTokens := nil.
+	outputTokens := nil.
+	totalTokens := nil
+]
+
+{ #category : 'initialization' }
+ChatPharoMessage >> inputTokens [
+
+	^ inputTokens
+]
+
+{ #category : 'initialization' }
+ChatPharoMessage >> inputTokens: anInteger [
+
+	inputTokens := anInteger
+]
+
+{ #category : 'initialization' }
+ChatPharoMessage >> outputTokens [
+
+	^ outputTokens
+]
+
+{ #category : 'initialization' }
+ChatPharoMessage >> outputTokens: anInteger [
+
+	outputTokens := anInteger
 ]
 
 { #category : 'accessing' }
@@ -220,4 +250,16 @@ ChatPharoMessage >> thinking: aString [
 	"Set the thinking content from the agent response"
 
 	thinking := aString
+]
+
+{ #category : 'initialization' }
+ChatPharoMessage >> totalTokens [
+
+	^ totalTokens
+]
+
+{ #category : 'initialization' }
+ChatPharoMessage >> totalTokens: anInteger [
+
+	totalTokens := anInteger
 ]
