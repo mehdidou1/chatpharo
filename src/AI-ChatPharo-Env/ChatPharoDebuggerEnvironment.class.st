@@ -38,13 +38,13 @@ ChatPharoDebuggerEnvironment class >> forContext: aChatPharoDebuggerContext [
 		  yourself
 ]
 
-{ #category : 'as yet unclassified' }
+{ #category : 'tools' }
 ChatPharoDebuggerEnvironment >> debuggerContext [ 
 
 	^ debuggerContext
 ]
 
-{ #category : 'as yet unclassified' }
+{ #category : 'tools' }
 ChatPharoDebuggerEnvironment >> functionGetErrorDetails [
 
 	^ ChatPharoClient
@@ -64,7 +64,7 @@ ChatPharoDebuggerEnvironment >> functionGetErrorDetails [
 				  yourself ]
 ]
 
-{ #category : 'as yet unclassified' }
+{ #category : 'tools' }
 ChatPharoDebuggerEnvironment >> functionGetLocalVariables [
 
 	^ ChatPharoClient
@@ -85,7 +85,7 @@ ChatPharoDebuggerEnvironment >> functionGetLocalVariables [
 						  with: 'count' -> vars size ] ]
 ]
 
-{ #category : 'as yet unclassified' }
+{ #category : 'tools' }
 ChatPharoDebuggerEnvironment >> functionGetMethodSourceInStack [
 
 	^ ChatPharoClient
@@ -118,7 +118,7 @@ ChatPharoDebuggerEnvironment >> functionGetMethodSourceInStack [
 				  with: 'protocol' -> method protocolName ]
 ]
 
-{ #category : 'as yet unclassified' }
+{ #category : 'tools' }
 ChatPharoDebuggerEnvironment >> functionGetReceiverState [
 
 	^ ChatPharoClient
@@ -140,7 +140,7 @@ ChatPharoDebuggerEnvironment >> functionGetReceiverState [
 						  with: 'count' -> state size ] ]
 ]
 
-{ #category : 'as yet unclassified' }
+{ #category : 'tools' }
 ChatPharoDebuggerEnvironment >> functionGetStackTrace [
 
 	^ ChatPharoClient
@@ -161,7 +161,44 @@ ChatPharoDebuggerEnvironment >> functionGetStackTrace [
 						  with: 'depth' -> trace size ] ]
 ]
 
-{ #category : 'as yet unclassified' }
+{ #category : 'tools' }
+ChatPharoDebuggerEnvironment >> functionRecreateBugRecipe [
+
+	^ ChatPharoClient
+		  name: 'build_bug_reproduction_recipe'
+		  description: 'Builds a deterministic recipe to reproduce the same bug from the current debugger snapshot, including setup assumptions, trigger steps, and expected failure.'
+		  parameters: (Dictionary
+			   with: 'type' -> 'object'
+			   with: 'properties' -> Dictionary new
+			   with: 'required' -> #())
+		  block: [ :arguments |
+			  | className selector exception message stack receiver vars lines |
+			  className := debuggerContext failingClassName ifNil: [ 'UnknownClass' ].
+			  selector := debuggerContext failingSelector ifNil: [ 'unknownSelector' ].
+			  exception := debuggerContext errorClassName ifNil: [ 'Error' ].
+			  message := debuggerContext errorMessage ifNil: [ 'No message captured' ].
+			  stack := debuggerContext stackTrace ifNil: [ #() ].
+			  receiver := debuggerContext receiverState ifNil: [ Dictionary new ].
+			  vars := debuggerContext localVariables ifNil: [ Dictionary new ].
+			  lines := OrderedCollection new.
+			  lines add: '1) Open a workspace and load the package containing ' , className , '>>' , selector , '.'.
+			  lines add: '2) Ensure the object state matches the debugger snapshot (receiver + temp values shown below).'.
+			  lines add: '3) Evaluate the failing send that reaches ' , className , '>>' , selector , '.'.
+			  lines add: '4) Confirm the debugger raises ' , exception , ' with message: ' , message , '.'.
+			  lines add: '5) Verify the top stack frames match the captured stack trace before changing code.'.
+			  Dictionary new
+				  at: 'summary' put: 'Recipe generated from debugger snapshot';
+				  at: 'failing_method' put: (className , '>>' , selector);
+				  at: 'expected_exception' put: exception;
+				  at: 'expected_message' put: message;
+				  at: 'steps' put: lines asArray;
+				  at: 'captured_stack_trace' put: stack;
+				  at: 'captured_receiver_state' put: receiver;
+				  at: 'captured_local_variables' put: vars;
+				  yourself ]
+]
+
+{ #category : 'tools' }
 ChatPharoDebuggerEnvironment >> functionSuggestFix [
 
 	^ ChatPharoClient
@@ -190,22 +227,22 @@ ChatPharoDebuggerEnvironment >> functionSuggestFix [
 				  with: 'note' -> 'The fix has been proposed to the user for review. It will NOT be applied automatically.' ]
 ]
 
-{ #category : 'as yet unclassified' }
+{ #category : 'tools' }
 ChatPharoDebuggerEnvironment >> initializeWithContext: aChatPharoDebuggerContext [
 
 	super initialize.
 	debuggerContext := aChatPharoDebuggerContext.
 	tools := {
-		self functionGetErrorDetails.
-		self functionGetStackTrace.
-		self functionGetLocalVariables.
-		self functionGetReceiverState.
-		self functionGetMethodSourceInStack.
-		self functionSuggestFix.
-	} asOrderedCollection
+		         self functionGetErrorDetails.
+		         self functionGetStackTrace.
+		         self functionGetLocalVariables.
+		         self functionGetReceiverState.
+		self functionRecreateBugRecipe.
+		         self functionGetMethodSourceInStack.
+		         self functionSuggestFix } asOrderedCollection
 ]
 
-{ #category : 'as yet unclassified' }
+{ #category : 'tools' }
 ChatPharoDebuggerEnvironment >> tools [
 
 	^ tools

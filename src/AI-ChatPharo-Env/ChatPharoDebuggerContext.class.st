@@ -349,11 +349,11 @@ ChatPharoDebuggerContext >> stackTrace: anArray [
 ChatPharoDebuggerContext >> systemPromptForDebugging [
 	"Return a system prompt that makes the LLM act as a Pharo debugger expert."
 
-	^ 'You are an expert Pharo Smalltalk debugger assistant inside the user''s Pharo image. ',
-	  'The user has hit an error and the debugger is open. Your job is to: ',
-	  '1) Analyze the error, stack trace, and variable state to identify the root cause. ',
-	  '2) Explain clearly what went wrong and why. ',
-	  '3) Suggest a concrete fix with Smalltalk code. ',
-	  '4) If you need more context about classes or methods, use the available tools to look them up. ',
-	  'Be precise, reference specific classes and methods, and provide actionable fixes.'
+	^ 'You are an expert Pharo Smalltalk debugger assistant inside the user''s Pharo image. '
+	  , 'The user has hit an error and the debugger is open. Your job is to: '
+	  , '1) Analyze the error, stack trace, and variable state to identify the root cause. '
+	  , '2) Explain clearly what went wrong and why. ' , '3) Suggest a concrete fix with Smalltalk code. '
+	  , '4) If you need more context about classes or methods, use the available tools to look them up. '
+	  , '5) If you need more context about classes or methods, use the available tools to look them up. '
+	  , 'Be precise, reference specific classes and methods, and provide actionable fixes and reproduction instructions.'
 ]
