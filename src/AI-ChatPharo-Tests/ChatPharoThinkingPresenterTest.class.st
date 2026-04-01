@@ -72,6 +72,15 @@ self assert: (buttonLabel includesSubstring: 'Done').
 ]
 
 { #category : 'running' }
+ChatPharoThinkingPresenterTest >> testPhaseSetterUpdatesCurrentPhase [
+
+	presenter phase: #executing.
+	self assert: (presenter instVarNamed: #currentPhase) equals: #executing.
+	presenter phase: #finished.
+	self assert: (presenter instVarNamed: #currentPhase) equals: #finished
+]
+
+{ #category : 'running' }
 ChatPharoThinkingPresenterTest >> testStartAnimationClearsExecutedTools [
 
 	presenter addExecutedTool: 'search_code'.
@@ -87,4 +96,29 @@ ChatPharoThinkingPresenterTest >> testStartAnimationResetsAndStartsTiming [
 
 	self assert: (presenter instVarNamed: #thinkingStartedAt) isNotNil.
 	self assert: (presenter instVarNamed: #thinkingElapsedSeconds) equals: 0
+]
+
+{ #category : 'running' }
+ChatPharoThinkingPresenterTest >> testTokenUsageAccessors [
+
+	presenter inputTokens: 100.
+	presenter outputTokens: 50.
+	presenter totalTokens: 150.
+	self assert: presenter inputTokens equals: 100.
+	self assert: presenter outputTokens equals: 50.
+	self assert: presenter totalTokens equals: 150
+]
+
+{ #category : 'running' }
+ChatPharoThinkingPresenterTest >> testUpdateTokenUsageFromMessage [
+
+	| message |
+	message := ChatPharoMessage new.
+	message inputTokens: 200.
+	message outputTokens: 75.
+	message totalTokens: 275.
+	presenter updateTokenUsageFrom: message.
+	self assert: presenter inputTokens equals: 200.
+	self assert: presenter outputTokens equals: 75.
+	self assert: presenter totalTokens equals: 275
 ]
