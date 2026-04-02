@@ -324,7 +324,7 @@ ChatPharoTool >> initializeWithBaseURL: initialBaseURL apiKey: initialAPIKey sys
 	tools := initialTools.
 	onToolExecution := nil.
 	extraParameters := Dictionary new.
-	self model: self modelNames first
+	self model: self safeDefaultModelName
 ]
 
 { #category : 'accessing' }
@@ -401,6 +401,19 @@ ChatPharoTool >> requestParameters: aDictionary [
 ChatPharoTool >> requestTimeoutSeconds [
 
 	^ ChatPharoSettings default requestTimeoutSeconds
+]
+
+{ #category : 'initialization' }
+ChatPharoTool >> safeDefaultModelName [
+	"Pick a default model while allowing offline initialization."
+
+	| availableModels |
+	availableModels := [
+		self modelNames ]
+			on: Error
+			do: [ #() ].
+	availableModels ifEmpty: [ ^ '' ].
+	^ availableModels first
 ]
 
 { #category : 'accessing' }
