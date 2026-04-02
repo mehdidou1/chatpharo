@@ -279,33 +279,31 @@ ChatPharoSettingsPresenter >> ensureIcebergExtensionTab [
 	notebook selectPage: icebergExtensionPage
 ]
 
-{ #category : 'as yet unclassified' }
+{ #category : 'accessing - model' }
 ChatPharoSettingsPresenter >> historyTextForChats [
 
 	| chats history |
-	chats := chatPharo
-		         ifNotNil: [ chatPharo chats ]
-		         ifNil: [ #() ].
+	chats := chatPharo ifNotNil: [ chatPharo chats ] ifNil: [ #(  ) ].
 	chats isEmpty ifTrue: [
-		history := model agent history.
-		^ history
-			  ifNotNil: [ history asPromptPrefix ]
-			  ifNil: [ 'No history available.' ] ].
+			history := model agent history.
+			^ (history notNil and: [ history messages notEmpty ])
+			  ifTrue: [ history asPromptPrefix ]
+			  ifFalse: [ 'No history available.' ] ].
 
 	^ String streamContents: [ :stream |
-		  chats withIndexDo: [ :chat :index |
-			  | prefix |
-			  stream
-				  nextPutAll: 'Chat ' , index asString;
-				  cr.
-			  prefix := chat historyPromptPrefix.
-			  prefix isEmpty
-				  ifTrue: [ stream nextPutAll: 'No history available.' ]
-				  ifFalse: [ stream nextPutAll: prefix ].
-			  index < chats size ifTrue: [
-				  stream
-					  cr;
-					  cr ] ] ]
+			  chats withIndexDo: [ :chat :index |
+					  | prefix |
+					  stream
+						 nextPutAll: '--- Chat ' , index asString , ' ---';
+						  cr.
+					  prefix := chat historyPromptPrefix.
+					  prefix isEmpty
+						  ifTrue: [ stream nextPutAll: 'No history available.' ]
+						  ifFalse: [ stream nextPutAll: prefix ].
+					  index < chats size ifTrue: [
+							  stream
+								  cr;
+								  cr ] ] ]
 ]
 
 { #category : 'initialization' }
@@ -480,7 +478,7 @@ ChatPharoSettingsPresenter >> initializeWindow: aWindowPresenter [
 		initialExtent: 800@500
 ]
 
-{ #category : 'initialization' }
+{ #category : 'tabs' }
 ChatPharoSettingsPresenter >> newChatTab [
 
 	| agentSection toolsSection loggingSection uiSection |
@@ -539,7 +537,7 @@ ChatPharoSettingsPresenter >> newChatTab [
 		  yourself
 ]
 
-{ #category : 'initialization' }
+{ #category : 'tabs' }
 ChatPharoSettingsPresenter >> newConfigurationTab [
 
 	^ SpPresenter new
@@ -554,14 +552,14 @@ ChatPharoSettingsPresenter >> newConfigurationTab [
 		  yourself
 ]
 
-{ #category : 'initialization' }
+{ #category : 'tabs' }
 ChatPharoSettingsPresenter >> newCustomToolsTab [
 	"Creates the Custom Tools configuration tab"
 
 	^ ChatPharoCustomToolsSettingsPresenter on: model
 ]
 
-{ #category : 'initialization' }
+{ #category : 'tabs' }
 ChatPharoSettingsPresenter >> newDebuggerTab [
 
 	| infoLabel systemPromptInput |
@@ -584,7 +582,7 @@ ChatPharoSettingsPresenter >> newDebuggerTab [
 		  yourself
 ]
 
-{ #category : 'initialization' }
+{ #category : 'tabs' }
 ChatPharoSettingsPresenter >> newEthicsTab [
 	"Create the Ethics Director configuration tab."
 
@@ -638,7 +636,7 @@ ChatPharoSettingsPresenter >> newEthicsTab [
 		  yourself
 ]
 
-{ #category : 'initialization' }
+{ #category : 'tabs' }
 ChatPharoSettingsPresenter >> newExtensionsTab [
 
 	^ SpPresenter new
@@ -650,23 +648,50 @@ ChatPharoSettingsPresenter >> newExtensionsTab [
 		  yourself
 ]
 
-{ #category : 'initialization' }
+{ #category : 'tabs' }
 ChatPharoSettingsPresenter >> newHistoryTab [
 
- | historyText historyView |
-        historyText := self historyTextForChats.
+	| historyText historyView refreshButton clearButton buttonBar |
+	historyText := self historyTextForChats.
 
 	historyView := self newText.
 	historyView text: historyText asText.
+	
+	refreshButton := self newButton
+		                  label: 'Refresh';
+		                  icon: (self iconNamed: #refresh);
+		                  help: 'Refresh the history view';
+		                  action: [ historyView text: self historyTextForChats asText ];
+		                  yourself.
+
+	clearButton := self newButton
+		                label: 'Clear History';
+		                icon: (self iconNamed: #delete);
+		                help: 'Clear all chat history';
+		                action: [
+			                (self confirm: 'Are you sure you want to clear all chat history?') ifTrue: [
+					                chatPharo ifNotNil: [
+							                chatPharo chats do: [ :chat |
+									                chat clearChat ] ].
+					                model agent history clear.
+					                historyView text: self historyTextForChats asText ] ];
+		                yourself.
+
+	buttonBar := SpBoxLayout newHorizontal
+		             spacing: 8;
+		             add: refreshButton expand: false;
+		             add: clearButton expand: false;
+		             yourself.
 
 	^ SpPresenter new
 		  layout: (SpBoxLayout newTopToBottom
+		add: buttonBar expand: false;
 				   add: historyView;
 				   yourself);
 		  yourself
 ]
 
-{ #category : 'initialization' }
+{ #category : 'tabs' }
 ChatPharoSettingsPresenter >> newIcebergTab [
 
 	| infoLabel |
@@ -691,28 +716,28 @@ ChatPharoSettingsPresenter >> newIcebergTab [
 		  yourself
 ]
 
-{ #category : 'initialization' }
+{ #category : 'tabs' }
 ChatPharoSettingsPresenter >> newMCPTab [
 	"Creates the MCP (Model Context Protocol) configuration tab"
 
 	^ ChatPharoMCPSettingsPresenter on: model
 ]
 
-{ #category : 'initialization' }
+{ #category : 'tabs' }
 ChatPharoSettingsPresenter >> newMemoryTab [
 	"Creates the Long-Term Memory configuration tab"
 
 	^ ChatPharoMemoryPresenter on: model
 ]
 
-{ #category : 'initialization' }
+{ #category : 'tabs' }
 ChatPharoSettingsPresenter >> newMultiversTab [
 	"Creates the Multivers configuration tab"
 
 	^ ChatPharoMultiversPresenter on: model
 ]
 
-{ #category : 'initialization' }
+{ #category : 'tabs' }
 ChatPharoSettingsPresenter >> newPersonalTab [
 	"Create the personal configuration tab."
 
@@ -792,7 +817,7 @@ ChatPharoSettingsPresenter >> newPersonalTab [
 		yourself
 ]
 
-{ #category : 'initialization' }
+{ #category : 'tabs' }
 ChatPharoSettingsPresenter >> newSkillsTab [
 	"Creates the Skills configuration tab"
 

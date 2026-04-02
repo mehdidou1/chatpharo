@@ -135,10 +135,11 @@ ChatPharoAgent >> initialize [
 
 	super initialize.
 	model := ''.
-	systemPrompt := systemPrompt := self class defaultSystemPrompt.
+	systemPrompt := self class defaultSystemPrompt.
 	browserSystemPrompt := self class defaultBrowserSystemPrompt.
 	promptPrefix := ''.
 	response := ''.
+	history := ChatPharoHistory new.
 	onToolExecution := nil.
 	maxTokens := nil.
 	topP := nil.
