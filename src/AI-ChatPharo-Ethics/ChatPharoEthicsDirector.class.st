@@ -14,7 +14,8 @@ Class {
 		'tokenBudget',
 		'timeBudgetMinutes',
 		'messageLimit',
-		'requestTimeoutSeconds'
+		'requestTimeoutSeconds',
+		'lastRequestDurationSeconds'
 	],
 	#category : 'AI-ChatPharo-Ethics',
 	#package : 'AI-ChatPharo-Ethics'
@@ -62,7 +63,27 @@ ChatPharoEthicsDirector >> initialize [
 	tokenBudget := 4096.
 	timeBudgetMinutes := 30.
 	messageLimit := 50.
-	requestTimeoutSeconds := 300
+	requestTimeoutSeconds := 300.
+	lastRequestDurationSeconds := 0
+]
+
+{ #category : 'initialization' }
+ChatPharoEthicsDirector >> lastRequestDurationSeconds [
+	"Duration (in seconds) of the most recent backend request. Updated by
+	 ChatPharoTool after every HTTP round-trip and echoed back on the next
+	 request so the backend can observe client-side latency."
+
+	^ lastRequestDurationSeconds ifNil: [ lastRequestDurationSeconds := 0 ]
+]
+
+{ #category : 'initialization' }
+ChatPharoEthicsDirector >> lastRequestDurationSeconds: aNumber [
+
+	lastRequestDurationSeconds := aNumber.
+	ChatPharoLogger logFrontend: 'Request duration recorded'
+		details: (Dictionary new
+			at: 'seconds' put: (aNumber ifNil: [ 'unset' ] ifNotNil: [ aNumber ]);
+			yourself)
 ]
 
 { #category : 'accessing' }

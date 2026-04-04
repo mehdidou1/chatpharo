@@ -224,6 +224,36 @@ ChatPharoTool >> baseURL: anObject [
 ]
 
 { #category : 'initialization' }
+ChatPharoTool >> buildPayloadFor: messages [
+
+	| data toolSchemas ethicsPayload director tokenBudgetValue |
+	data := Dictionary new: 8.
+	data at: 'model' put: model.
+	data at: 'messages' put: messages.
+	extraParameters ifNotNil: [ data addAll: extraParameters ].
+	toolSchemas := self resolvedToolSchemas.
+	toolSchemas ifNotEmpty: [
+		data at: 'tools' put: toolSchemas.
+		data at: 'tool_choice' put: 'auto' ].
+	director := ChatPharoSettings default ethicsDirector.
+	director ifNotNil: [
+		ethicsPayload := Dictionary new.
+		ethicsPayload at: 'enabled' put: director enabled.
+		ethicsPayload at: 'mandate' put: director mandate.
+		ethicsPayload at: 'cognitive_load_budget' put: director cognitiveLoadBudget.
+		ethicsPayload at: 'token_budget' put: director tokenBudget.
+		ethicsPayload at: 'time_budget_minutes' put: director timeBudgetMinutes.
+		ethicsPayload at: 'message_limit' put: director messageLimit.
+		ethicsPayload at: 'request_timeout_seconds' put: director requestTimeoutSeconds.
+		ethicsPayload at: 'last_request_duration_seconds' put: director lastRequestDurationSeconds.
+		data at: 'chatpharo_ethics' put: ethicsPayload.
+		tokenBudgetValue := director tokenBudget.
+		(tokenBudgetValue notNil and: [ (data includesKey: 'max_tokens') not ]) ifTrue: [
+			data at: 'max_tokens' put: tokenBudgetValue ] ].
+	^ data
+]
+
+{ #category : 'initialization' }
 ChatPharoTool >> cachedClient [
 
 	^ cachedClient ifNil: [
@@ -270,23 +300,25 @@ ChatPharoTool >> extraHeaders: aDictionary [
 
 { #category : 'initialization' }
 ChatPharoTool >> getResponseForHistory: history [
-
-	| messages data response message toolCalls thinkingText allTools toolSchemas httpClient |
+	| messages data response message toolCalls thinkingText httpClient startedAt elapsedSeconds director |
 	messages := Array streamContents: [ :stream |
 			            systemPrompt ifNotNil: [ stream nextPut: (Dictionary with: 'role' -> 'system' with: 'content' -> systemPrompt) ].
 			            history putOpenAIChatMessagesOn: stream ].
-	data := Dictionary new: 5.
-	data at: 'model' put: model.
-	data at: 'messages' put: messages.
-	extraParameters ifNotNil: [ data addAll: extraParameters ].
-	toolSchemas := self resolvedToolSchemas.
-	toolSchemas ifNotEmpty: [
-			data at: 'tools' put: toolSchemas.
-			data at: 'tool_choice' put: 'auto' ].
+	data := self buildPayloadFor: messages.
 	httpClient := self cachedClient.
+	startedAt := DateAndTime now.
+	response := [
+		            httpClient
+			            resetEntity;
+			            entity: (ZnEntity json: (self jsonStringFor: (self normalizeForJson: data)));
+			            timeout: self requestTimeoutSeconds;
+			            post;
+			            response ] ensure: [
+			            elapsedSeconds := (DateAndTime now - startedAt) asSeconds.
+			            director := ChatPharoSettings default ethicsDirector.
+			            director ifNotNil: [ director lastRequestDurationSeconds: elapsedSeconds ] ].
 	response := httpClient
 		            resetEntity;
-		
 		            entity: (ZnEntity json: (self jsonStringFor: (self normalizeForJson: data)));
 		            timeout: self requestTimeoutSeconds;
 		            post;

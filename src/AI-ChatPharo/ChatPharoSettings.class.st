@@ -259,7 +259,7 @@ ChatPharoSettings >> agent [
 	^ agent
 ]
 
-{ #category : 'as yet unclassified' }
+{ #category : 'extensions' }
 ChatPharoSettings >> allBrowserToolsEnabled [
         "Return true if all available browser tools are enabled."
 
@@ -487,13 +487,13 @@ ChatPharoSettings >> customToolsAsClients [
 		collect: [ :tool | tool asChatPharoClient ]
 ]
 
-{ #category : 'as yet unclassified' }
+{ #category : 'extensions' }
 ChatPharoSettings >> debuggerExtensionEnabled [
 
 	^ debuggerExtensionEnabled ifNil: [ debuggerExtensionEnabled := false ]
 ]
 
-{ #category : 'as yet unclassified' }
+{ #category : 'extensions' }
 ChatPharoSettings >> debuggerExtensionEnabled: aBoolean [
 
 	debuggerExtensionEnabled := aBoolean.
@@ -505,13 +505,13 @@ ChatPharoSettings >> debuggerExtensionEnabled: aBoolean [
 			yourself)
 ]
 
-{ #category : 'as yet unclassified' }
+{ #category : 'extensions' }
 ChatPharoSettings >> debuggerSystemPrompt [
 
 	^ debuggerSystemPrompt ifNil: [ debuggerSystemPrompt := self defaultDebuggerSystemPrompt ]
 ]
 
-{ #category : 'as yet unclassified' }
+{ #category : 'extensions' }
 ChatPharoSettings >> debuggerSystemPrompt: aString [
 
 	debuggerSystemPrompt := aString.
@@ -533,13 +533,13 @@ ChatPharoSettings >> defaultCommitMessageTemplate [
 #comment:'
 ]
 
-{ #category : 'as yet unclassified' }
+{ #category : 'extensions' }
 ChatPharoSettings >> defaultDebuggerSystemPrompt [
 
 	^ 'You are a Pharo debugging assistant. Explain the selected method and suggest likely root causes and concrete next debugging steps.'
 ]
 
-{ #category : 'as yet unclassified' }
+{ #category : 'extensions' }
 ChatPharoSettings >> defaultIcebergSystemPrompt [
 
 	^ String streamContents: [ :stream |
@@ -571,7 +571,7 @@ ChatPharoSettings >> developerId: aString [
 			yourself)
 ]
 
-{ #category : 'as yet unclassified' }
+{ #category : 'extensions' }
 ChatPharoSettings >> disableAllBrowserTools [
         "Disable all browser tools."
 
@@ -626,7 +626,7 @@ ChatPharoSettings >> dynamicChatNamingEnabled: aBoolean [
 			 yourself)
 ]
 
-{ #category : 'as yet unclassified' }
+{ #category : 'extensions' }
 ChatPharoSettings >> enableAllBrowserTools [
         "Enable all available browser tools."
 
@@ -855,6 +855,18 @@ ChatPharoSettings >> isDeveloper: aBoolean [
 		details: (Dictionary new
 			at: 'isDeveloper' put: aBoolean;
 			yourself)
+]
+
+{ #category : 'ethics' }
+ChatPharoSettings >> lastRequestDurationSeconds [
+
+	^ self ethicsDirector lastRequestDurationSeconds
+]
+
+{ #category : 'ethics' }
+ChatPharoSettings >> lastRequestDurationSeconds: aNumber [
+
+	self ethicsDirector lastRequestDurationSeconds: aNumber
 ]
 
 { #category : 'initialization' }
@@ -1315,7 +1327,7 @@ ChatPharoSettings >> replaceCustomTool: oldTool with: newTool [
 	self class saveDefault
 ]
 
-{ #category : 'as yet unclassified' }
+{ #category : 'extensions' }
 ChatPharoSettings >> requestTimeoutSeconds [
 
 	^ self ethicsDirector requestTimeoutSeconds

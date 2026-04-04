@@ -23,6 +23,12 @@ ChatPharoToolTestDouble >> applyToolFunction: functionName arguments: arguments 
 ]
 
 { #category : 'initialization' }
+ChatPharoToolTestDouble >> cachedClient [
+
+    ^ ChatPharoToolTestClientStub new
+]
+
+{ #category : 'initialization' }
 ChatPharoToolTestDouble >> client [
 
     ^ ChatPharoToolTestClientStub new
