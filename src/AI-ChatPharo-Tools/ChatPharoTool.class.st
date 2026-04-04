@@ -24,7 +24,9 @@ Class {
 		'onToolExecution',
 		'extraParameters',
 		'extraHeaders',
-		'toolIndex'
+		'cachedClient',
+		'cachedToolSchemas',
+		'lastTemporalToolCount'
 	],
 	#category : 'AI-ChatPharo-Tools-Core',
 	#package : 'AI-ChatPharo-Tools',
@@ -177,7 +179,8 @@ ChatPharoTool >> apiKey [
 { #category : 'accessing' }
 ChatPharoTool >> apiKey: anObject [
 
-	apiKey := anObject
+	apiKey := anObject.
+	self resetCachedClient
 ]
 
 { #category : 'initialization' }
@@ -215,7 +218,25 @@ ChatPharoTool >> baseURL [
 { #category : 'accessing' }
 ChatPharoTool >> baseURL: anObject [
 
-	baseURL := anObject
+	baseURL := anObject.
+	self resetCachedClient
+]
+
+{ #category : 'initialization' }
+ChatPharoTool >> cachedClient [
+
+	^ cachedClient ifNil: [
+		| client |
+		client := ZnClient new
+			url: baseURL;
+			addPath: #( 'chat' 'completions' );
+			yourself.
+		extraHeaders ifNotNil: [
+			extraHeaders keysAndValuesDo: [ :key :value |
+				client headerAt: key put: value ] ]
+		ifNil: [
+			apiKey ifNotNil: [ client setBearerAuthentication: apiKey ] ].
+		cachedClient := client ]
 ]
 
 { #category : 'initialization' }
@@ -242,34 +263,35 @@ ChatPharoTool >> extraHeaders [
 { #category : 'accessing' }
 ChatPharoTool >> extraHeaders: aDictionary [
 
-	extraHeaders := aDictionary
+	extraHeaders := aDictionary.
+	self resetCachedClient
 ]
 
 { #category : 'initialization' }
 ChatPharoTool >> getResponseForHistory: history [
 
-	| messages data response message toolCalls thinkingText allTools responseJson usage result |
+	| messages data response message toolCalls thinkingText allTools toolSchemas httpClient |
 	messages := Array streamContents: [ :stream |
 			            systemPrompt ifNotNil: [ stream nextPut: (Dictionary with: 'role' -> 'system' with: 'content' -> systemPrompt) ].
 			            history putOpenAIChatMessagesOn: stream ].
-	data := Dictionary with: 'model' -> model with: 'messages' -> messages.
+	data := Dictionary new: 5.
+	data at: 'model' put: model.
+	data at: 'messages' put: messages.
 	extraParameters ifNotNil: [ data addAll: extraParameters ].
-	allTools := tools ifNil: [ OrderedCollection new ] ifNotNil: [ tools asOrderedCollection copy ].
-	allTools addAll: ChatPharoTemporalToolRegistry current tools.
-	allTools ifNotEmpty: [
-			data
-				add: 'tools' -> (allTools collect: [ :t | t openAIChatTool ] as: Array);
-				add: 'tool_choice' -> 'auto' ].
-	response := self client
-		            addPath: #( 'chat' 'completions' );
+	toolSchemas := self resolvedToolSchemas.
+	toolSchemas ifNotEmpty: [
+			data at: 'tools' put: toolSchemas.
+			data at: 'tool_choice' put: 'auto' ].
+	httpClient := self cachedClient.
+	response := httpClient
+		            resetEntity;
+		
 		            entity: (ZnEntity json: (self jsonStringFor: (self normalizeForJson: data)));
 		            timeout: self requestTimeoutSeconds;
 		            post;
 		            response.
 	response isSuccess ifFalse: [ Error signal: 'Could not get chat completion' ].
-	responseJson := STONJSON fromString: response contents.
-	message := (responseJson at: 'choices') first at: 'message'.
-	usage := responseJson at: 'usage' ifAbsent: [ nil ].
+	message := ((STONJSON fromString: response contents) at: 'choices') first at: 'message'.
 	toolCalls := self toolCallsFromMessage: message.
 	thinkingText := nil.
 	toolCalls ifNotNil: [
@@ -296,22 +318,9 @@ ChatPharoTool >> getResponseForHistory: history [
 												                cr ].
 									                stream cr ] ] ] ].
 
-	result := (ChatPharoHistorySaver role: 'assistant' content: (message at: 'content' ifAbsent: [ nil ]) toolCalls: toolCalls)
-		          thinking: thinkingText;
-		          yourself.
-	usage ifNotNil: [ | inTok outTok totTok |
-		inTok := usage at: 'prompt_tokens' ifAbsent: [
-			usage at: 'input_tokens' ifAbsent: [ nil ] ].
-		outTok := usage at: 'completion_tokens' ifAbsent: [
-			usage at: 'output_tokens' ifAbsent: [ nil ] ].
-		totTok := usage at: 'total_tokens' ifAbsent: [ nil ].
-		"Compute total when the API does not provide it (e.g. Anthropic)"
-		(totTok isNil and: [ inTok notNil and: [ outTok notNil ] ]) ifTrue: [
-			totTok := inTok + outTok ].
-		result inputTokens: inTok.
-		result outputTokens: outTok.
-		result totalTokens: totTok ].
-	^ result
+	^ (ChatPharoHistorySaver role: 'assistant' content: (message at: 'content' ifAbsent: [ nil ]) toolCalls: toolCalls)
+		  thinking: thinkingText;
+		  yourself
 ]
 
 { #category : 'initialization' }
@@ -324,7 +333,10 @@ ChatPharoTool >> initializeWithBaseURL: initialBaseURL apiKey: initialAPIKey sys
 	tools := initialTools.
 	onToolExecution := nil.
 	extraParameters := Dictionary new.
-	self model: self safeDefaultModelName
+	self model: self modelNames first.
+	cachedClient := nil.
+	cachedToolSchemas := nil.
+	lastTemporalToolCount := nil.
 ]
 
 { #category : 'accessing' }
@@ -357,20 +369,26 @@ ChatPharoTool >> modelNames [
 
 { #category : 'accessing' }
 ChatPharoTool >> normalizeForJson: anObject [
-	"Create a JSON-safe copy of anObject without shared references."
 
 	anObject isNil ifTrue: [ ^ nil ].
+	anObject isNumber ifTrue: [ ^ anObject ].
+	(anObject isKindOf: Boolean) ifTrue: [ ^ anObject ].
+	anObject isSymbol ifTrue: [ ^ anObject asString ].
+	anObject isString ifTrue: [ ^ anObject ].
 	(anObject isString or: [ anObject isSymbol ]) ifTrue: [ ^ anObject asString copy ].
 	(anObject isNumber or: [ anObject isKindOf: Boolean ]) ifTrue: [ ^ anObject ].
-	(anObject isDictionary) ifTrue: [
-		| dict |
-		dict := Dictionary new.
-		anObject keysAndValuesDo: [ :key :value |
-			dict at: key asString copy put: (self normalizeForJson: value) ].
-		^ dict ].
-	(anObject isCollection) ifTrue: [
-		^ (anObject collect: [ :each | self normalizeForJson: each ]) as: Array ].
-	^ anObject asString copy
+	anObject isDictionary ifTrue: [
+			| dict |
+			dict := Dictionary new: anObject size.
+			anObject keysAndValuesDo: [ :key :value |
+					dict
+						at: (key isSymbol
+								 ifTrue: [ key asString ]
+								 ifFalse: [ key ])
+						put: (self normalizeForJson: value) ].
+			^ dict ].
+	anObject isCollection ifTrue: [ ^ (anObject collect: [ :each | self normalizeForJson: each ]) as: Array ].
+	^ anObject asString
 ]
 
 { #category : 'accessing' }
@@ -401,6 +419,26 @@ ChatPharoTool >> requestParameters: aDictionary [
 ChatPharoTool >> requestTimeoutSeconds [
 
 	^ ChatPharoSettings default requestTimeoutSeconds
+]
+
+{ #category : 'initialization' }
+ChatPharoTool >> resetCachedClient [
+
+
+	cachedClient ifNotNil: [ :c | [ c close ] on: Error do: [ "ignore" ] ].
+	cachedClient := nil
+]
+
+{ #category : 'initialization' }
+ChatPharoTool >> resolvedToolSchemas [
+	| currentTemporalCount |
+	currentTemporalCount := ChatPharoTemporalToolRegistry current size.
+	(cachedToolSchemas notNil and: [ lastTemporalToolCount = currentTemporalCount ]) ifTrue: [ ^ cachedToolSchemas ].
+	lastTemporalToolCount := currentTemporalCount.
+	cachedToolSchemas := Array streamContents: [ :stream |
+			                     tools ifNotNil: [ tools do: [ :t | stream nextPut: t openAIChatTool ] ].
+			                     ChatPharoTemporalToolRegistry current tools do: [ :t | stream nextPut: t openAIChatTool ] ].
+	^ cachedToolSchemas
 ]
 
 { #category : 'initialization' }
@@ -534,5 +572,5 @@ ChatPharoTool >> tools [
 ChatPharoTool >> tools: anObject [
 
 	tools := anObject.
-	toolIndex := nil
+	cachedToolSchemas := nil
 ]

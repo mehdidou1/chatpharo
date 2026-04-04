@@ -12,7 +12,8 @@ Class {
 		'name',
 		'description',
 		'parameters',
-		'block'
+		'block',
+		'cachedOpenAIChatTool'
 	],
 	#category : 'AI-ChatPharo-Tools-Core',
 	#package : 'AI-ChatPharo-Tools',
@@ -202,7 +203,8 @@ ChatPharoClient >> description [
 { #category : 'accessing' }
 ChatPharoClient >> description: anObject [
 
-	description := anObject
+	description := anObject.
+	cachedOpenAIChatTool := nil
 ]
 
 { #category : 'initialization' }
@@ -233,19 +235,20 @@ ChatPharoClient >> name [
 { #category : 'accessing' }
 ChatPharoClient >> name: anObject [
 
-	name := anObject
+	name := anObject.
+	cachedOpenAIChatTool := nil
 ]
 
 { #category : 'accessing' }
 ChatPharoClient >> openAIChatTool [
 
-    ^ Dictionary
-        with: 'type' -> 'function'
-        with: 'function' -> (Dictionary
-            with: 'name' -> self name
-            with: 'description' -> self description
-            with: 'parameters' -> self parameters)
-
+   ^ cachedOpenAIChatTool ifNil: [
+		cachedOpenAIChatTool := Dictionary
+			with: 'type' -> 'function'
+			with: 'function' -> (Dictionary
+				with: 'name' -> self name
+				with: 'description' -> self description
+				with: 'parameters' -> self parameters) ]
 ]
 
 { #category : 'accessing' }
@@ -257,5 +260,6 @@ ChatPharoClient >> parameters [
 { #category : 'accessing' }
 ChatPharoClient >> parameters: anObject [
 
-	parameters := anObject
+	parameters := anObject.
+	cachedOpenAIChatTool := nil
 ]
