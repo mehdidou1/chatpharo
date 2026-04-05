@@ -30,30 +30,33 @@ ChatPharoCommandParser class >> default [
 
 { #category : 'commands' }
 ChatPharoCommandParser >> clearChat: aChat [
-	"Clear the chat history"
 
 	aChat clearChat.
-	ChatPharoLogger logSystem: 'Chat cleared via /clear command' details: (Dictionary new
-		at: 'chatId' put: aChat identityHash;
-		yourself).
+	ChatPharoLogger
+		logSystem: 'Chat cleared via /clear command'
+		details: (Dictionary new
+				 at: 'chatId' put: aChat identityHash;
+				 yourself).
 	^ 'Chat cleared! Start a fresh conversation.'
 ]
 
 { #category : 'commands' }
 ChatPharoCommandParser >> exportChat: aChat [
-	"Export the chat as JSON"
 
 	| json |
 	json := aChat exportAsJson.
 	Clipboard clipboardText: json.
-	ChatPharoLogger logSystem: 'Chat exported via /export command' details: (Dictionary new
-		at: 'chatId' put: aChat identityHash;
-		at: 'messagesCount' put: aChat messages size;
-		yourself).
-	^ 'Chat exported to clipboard as JSON! (' , aChat messages size asString , ' messages)'
+	ChatPharoLogger
+		logSystem: 'Chat exported via /export command'
+		details: (Dictionary new
+				 at: 'chatId' put: aChat identityHash;
+				 at: 'messagesCount' put: aChat messages size;
+				 yourself).
+	^ 'Chat exported to clipboard as JSON! ('
+	  , aChat messages size asString , ' messages)'
 ]
 
-{ #category : 'parsing' }
+{ #category : 'initialization' }
 ChatPharoCommandParser >> initialize [
 
 	super initialize.
@@ -62,17 +65,15 @@ ChatPharoCommandParser >> initialize [
 
 { #category : 'parsing' }
 ChatPharoCommandParser >> isCommand: aString [
-	"Check if the string starts with a command prefix (/ or @)"
 
 	| trimmed |
 	trimmed := aString trimBoth.
 	^ trimmed notEmpty and: [
-		(trimmed first = $/) or: [ trimmed first = $@ ] ]
+		  trimmed first = $/ or: [ trimmed first = $@ ] ]
 ]
 
 { #category : 'parsing' }
 ChatPharoCommandParser >> parse: aString [
-	"Parse the input string and return a ChatPharoCommandResult"
 
 	| trimmed |
 	trimmed := aString trimBoth.
@@ -86,30 +87,24 @@ ChatPharoCommandParser >> parse: aString [
 { #category : 'private' }
 ChatPharoCommandParser >> parseCommand: aString [
 
-	"Parse a command string (starting with / or @) and return a result"
-
 	| prefix commandPart args commandName |
 	prefix := aString first.
 	commandPart := aString allButFirst trimLeft.
-
-	"Split command and arguments"
 	args := commandPart substrings.
 	commandName := args ifEmpty: [ '' ] ifNotEmpty: [ args first ].
 	args := args allButFirst.
-
-	"Look up the command handler"
 	^ commands
-		at: commandName
-		ifPresent: [ :handler |
-			ChatPharoCommandResult
-				command: commandName
-				args: args
-				handler: handler
-				prefix: prefix asString ]
-		ifAbsent: [
-			ChatPharoCommandResult
-				unknownCommand: commandName
-				prefix: prefix asString ]
+		  at: commandName
+		  ifPresent: [ :handler |
+				  ChatPharoCommandResult
+					  command: commandName
+					  args: args
+					  handler: handler
+					  prefix: prefix asString ]
+		  ifAbsent: [
+				  ChatPharoCommandResult
+					  unknownCommand: commandName
+					  prefix: prefix asString ]
 ]
 
 { #category : 'private' }
