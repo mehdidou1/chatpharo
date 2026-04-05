@@ -12,7 +12,8 @@ Class {
 		'connectionStatusLabel',
 		'multiversStatusLabel',
 		'disclaimerLabel',
-		'chatCounter'
+		'chatCounter',
+		'connectionMonitorProcess'
 	],
 	#category : 'AI-ChatPharo-Spec-Core',
 	#package : 'AI-ChatPharo-Spec',
@@ -47,7 +48,7 @@ ChatPharoPresenter >> addNewChat [
 			 yourself)
 ]
 
-{ #category : 'as yet unclassified' }
+{ #category : 'layout' }
 ChatPharoPresenter >> closeChat: aPage [
     | pageIndex |
     pageIndex := notebook pages indexOf: aPage ifAbsent: [ ^ self ].
@@ -223,12 +224,13 @@ ChatPharoPresenter >> initializePresenters [
 
 { #category : 'initialization' }
 ChatPharoPresenter >> initializeWindow: aWindowPresenter [
-	
+
 	super initializeWindow: aWindowPresenter.
-	
+
 	aWindowPresenter
 		title: 'ChatPharo';
-		initialExtent: 800@500
+		initialExtent: 800 @ 500.
+		aWindowPresenter whenClosedDo: [ self stopConnectionStatusMonitor ]
 ]
 
 { #category : 'initialization' }
@@ -392,18 +394,35 @@ ChatPharoPresenter >> setModelBeforeInitialization: anObject [
 	model := anObject
 ]
 
+{ #category : 'initialization' }
+ChatPharoPresenter >> stopConnectionStatusMonitor [
+
+	connectionMonitorProcess ifNotNil: [ :p |
+		p isTerminated ifFalse: [ p terminate ].
+		connectionMonitorProcess := nil ]
+]
+
 { #category : 'status' }
 ChatPharoPresenter >> updateConnectionStatus [
 
-	[
-	ChatPharoLogger logFrontend: 'Started connection status monitor'
-                details: (Dictionary new
-                        at: 'intervalSeconds' put: 10;
-                        yourself).
-		[
-			self updateConnectionStatusOnce.
-			self updateMultiversStatus.
-			(Delay forSeconds: 10) wait ] repeat ] forkAt: Processor userBackgroundPriority
+self stopConnectionStatusMonitor.
+
+		ChatPharoLogger
+			logFrontend: 'Started connection status monitor'
+			details: (Dictionary new
+			at: 'intervalSeconds' put: 10;
+			yourself).
+	connectionMonitorProcess := [
+		[ connectionMonitorProcess notNil ] whileTrue: [
+			UIManager default defer: [
+				connectionMonitorProcess ifNotNil: [
+					self updateConnectionStatusOnce.
+					self updateMultiversStatus ] ].
+			(Delay forSeconds: 10) wait ] ] newProcess
+		priority: Processor userBackgroundPriority;
+		name: 'ChatPharo connection monitor';
+		yourself.
+	connectionMonitorProcess resume
 ]
 
 { #category : 'status' }
