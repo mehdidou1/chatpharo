@@ -133,16 +133,20 @@ ChatPharoOllamaAgent class >> pullModel: aModelName [
 	self isReachable ifFalse: [
 		^ self error: 'Ollama server not reachable' ].
 
-	^ [ ZnClient new
-		url: 'http://' , self defaultHost , ':' , self defaultPort , '/api/pull';
-		entity: (ZnEntity with: (STONJSON toString: { (#name -> aModelName) } asDictionary));
-		post;
-		yourself.
-	] on: ZnHttpUnsuccessful, NetworkError do: [ :ex |
-		^ self error: 'Error pulling model: ' , ex messageText , '. Please verify the model name.' 
-	].
-
-
+	^ [
+		  ZnClient new
+			  url:
+				  'http://' , self defaultHost , ':' , self defaultPort
+				  , '/api/pull';
+			  entity: (ZnEntity with:
+						   (STONJSON toString: { (#name -> aModelName) } asDictionary));
+						timeout: 3600;
+			  post;
+			  yourself ]
+		  on: ZnHttpUnsuccessful , NetworkError
+		  do: [ :ex |
+				  ^ self error: 'Error pulling model: ' , ex messageText
+					    , '. Please verify the model name.' ]
 ]
 
 { #category : 'api' }

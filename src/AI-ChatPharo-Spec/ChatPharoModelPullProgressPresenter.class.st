@@ -177,22 +177,22 @@ ChatPharoModelPullProgressPresenter >> parseProgressLine: line [
 
 { #category : 'initialization' }
 ChatPharoModelPullProgressPresenter >> pullModel [
-    "Pull the model in a background thread with progress tracking."
 
-    [
-        | url client response progressStream 
-          currentProgress lastProgress 
-          totalBytes completedBytes isDone |
+  [
+        | url client response progressStream
+          currentProgress lastProgress
+          totalBytes completedBytes isDone successSeen |
 
         isDone := false.
+        successSeen := false.
         lastProgress := -1.
+        client := nil.
 
         self defer: [
             titleLabel label: 'Pulling Model: ', modelName.
             statusLabel label: 'Connecting to Ollama server...'.
             progressBar progress: 0.0
         ].
-
         modelName ifEmpty: [
             self defer: [
                 isComplete := true.
@@ -205,112 +205,144 @@ ChatPharoModelPullProgressPresenter >> pullModel [
             ].
             ^ self
         ].
-
-
         url := 'http://', ChatPharoOllamaAgent defaultHost, ':',
                ChatPharoOllamaAgent defaultPort, '/api/pull'.
-
         client := ZnClient new
             url: url;
             entity: (ZnEntity with:
                 (STONJSON toString: { (#name -> modelName) } asDictionary));
             contentType: 'application/json';
             streaming: true;
+            "Generous timeout: large model pulls can have long silent
+             phases (verify digest, slow CDN), which otherwise trip the
+             default 60s socket timeout and cut the download."
+            timeout: 3600;
             yourself.
 
         [
-            response := client post.
-            progressStream := (response respondsTo: #readStream)
-                ifTrue: [ response readStream ]
-                ifFalse: [ response ].
+            [
+                response := client post.
+                progressStream := (response respondsTo: #readStream)
+                    ifTrue: [ response readStream ]
+                    ifFalse: [ response ].
 
-            totalBytes := nil.
-            completedBytes := 0.
+                totalBytes := nil.
+                completedBytes := 0.
 
-            [ progressStream atEnd or: [ isDone ] ] whileFalse: [
-                | line progressData status |
+                [ isDone or: [ progressStream atEnd ] ] whileFalse: [
+                    | line progressData status errorMessage |
 
-                line := progressStream upTo: Character lf.
+                    line := progressStream upTo: Character lf.
 
-                line ifNotEmpty: [
-                    progressData := self parseProgressLine: line.
+                    line ifNotEmpty: [
+                        progressData := self parseProgressLine: line.
 
-                    progressData ifNotNil: [
-                        status := progressData
-                            at: 'status'
-                            ifAbsent: [ '' ].
+                        progressData ifNotNil: [
+                            "Ollama reports per-line errors via an 'error' key."
+                            errorMessage := progressData
+                                at: 'error'
+                                ifAbsent: [ nil ].
+                            errorMessage ifNotNil: [
+                                isDone := true.
+                                (Error new messageText: errorMessage) signal ].
 
-                        "Handle success first"
-                        (status = 'success') ifTrue: [
-                            isDone := true.
-                            self defer: [
-                                progressBar progress: 1.0.
-                                statusLabel label: 'Download complete!'.
-                                detailsLabel label:
-                                    'Model ', modelName, ' is ready to use.'
-                            ].
-                        ].
+                            status := progressData
+                                at: 'status'
+                                ifAbsent: [ '' ].
 
-                        "Handle byte progress"
-                        (progressData includesKey: 'completed')
-                            ifTrue: [
-                                completedBytes :=
-                                    progressData at: 'completed'.
-                                totalBytes :=
-                                    progressData at: 'total'
-                                    ifAbsent: [ totalBytes ].
-
-                                totalBytes ifNotNil: [
-                                    currentProgress :=
-                                        (completedBytes / totalBytes) asFloat.
-
-                                    "Only update if changed enough"
-                                    ((currentProgress - lastProgress) abs > 0.01)
-                                        ifTrue: [
-                                            lastProgress := currentProgress.
-
-                                            self defer: [
-                                                progressBar progress:
-                                                    currentProgress.
-                                                statusLabel label:
-                                                    status capitalized.
-                                                detailsLabel label:
-                                                    (self formatBytes:
-                                                        completedBytes),
-                                                    ' / ',
-                                                    (self formatBytes:
-                                                        totalBytes),
-                                                    ' (',
-                                                    (currentProgress * 100)
-                                                        rounded asString,
-                                                    '%)'
-                                            ].
-                                        ].
+                            "Handle success first"
+                            (status = 'success') ifTrue: [
+                                isDone := true.
+                                successSeen := true.
+                                self defer: [
+                                    progressBar progress: 1.0.
+                                    statusLabel label: 'Download complete!'.
+                                    detailsLabel label:
+                                        'Model ', modelName, ' is ready to use.'
                                 ].
                             ].
+
+                            "Handle byte progress"
+                            (progressData includesKey: 'completed')
+                                ifTrue: [
+                                    completedBytes :=
+                                        progressData at: 'completed'.
+                                    totalBytes :=
+                                        progressData at: 'total'
+                                        ifAbsent: [ totalBytes ].
+
+                                    totalBytes ifNotNil: [
+                                        currentProgress :=
+                                            (completedBytes / totalBytes) asFloat.
+
+                                        "Only update if changed enough"
+                                        ((currentProgress - lastProgress) abs > 0.01)
+                                            ifTrue: [
+                                                lastProgress := currentProgress.
+
+                                                self defer: [
+                                                    progressBar progress:
+                                                        currentProgress.
+                                                    statusLabel label:
+                                                        status capitalized.
+                                                    detailsLabel label:
+                                                        (self formatBytes:
+                                                            completedBytes),
+                                                        ' / ',
+                                                        (self formatBytes:
+                                                            totalBytes),
+                                                        ' (',
+                                                        (currentProgress * 100)
+                                                            rounded asString,
+                                                        '%)'
+                                                ].
+                                            ].
+                                    ].
+                                ].
+                        ].
                     ].
                 ].
-            ].
 
-            self defer: [
-                isComplete := true.
-                200 milliSeconds wait.
-                self window close.
-                onComplete ifNotNil: [ onComplete value ].
-            ].
+                "Stream ended. Only treat as success if Ollama actually
+                 sent a 'success' status line; otherwise the download was
+                 truncated and we must surface an error."
+                successSeen
+                    ifTrue: [
+                        self defer: [
+                            isComplete := true.
+                            200 milliSeconds wait.
+                            self window close.
+                            onComplete ifNotNil: [ onComplete value ] ] ]
+                    ifFalse: [
+                        | truncationError |
+                        truncationError := Error new
+                            messageText:
+                                'Download was interrupted before completion.';
+                            yourself.
+                        self defer: [
+                            isComplete := true.
+                            statusLabel label:
+                                'Error: download interrupted.'.
+                            detailsLabel label:
+                                'The connection to Ollama closed before the model finished downloading. Please try again.'.
+                            progressBar progress: 0.
+                            1 second wait.
+                            self window close.
+                            onError ifNotNil: [ onError value: truncationError ] ] ]
 
-        ] on: ZnHttpUnsuccessful, NetworkError do: [ :ex |
-            self defer: [
-                isComplete := true.
-                statusLabel label: 'Error: ', ex messageText.
-                detailsLabel label:
-                    'Please verify the model name and try again.'.
-                progressBar progress: 0.
-                1 second wait.
-                self window close.
-                onError ifNotNil: [ onError value: ex ].
+            ] on: Error do: [ :ex |
+                self defer: [
+                    isComplete := true.
+                    statusLabel label: 'Error: ', ex messageText.
+                    detailsLabel label:
+                        'Please verify the model name and your network, then try again.'.
+                    progressBar progress: 0.
+                    1 second wait.
+                    self window close.
+                    onError ifNotNil: [ onError value: ex ].
+                ].
             ].
-        ].
+        ] ensure: [
+            client ifNotNil: [ [ client close ] on: Error do: [ :e | ] ] ].
     ] fork
-
 ]
