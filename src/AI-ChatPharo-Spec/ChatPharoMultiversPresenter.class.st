@@ -37,41 +37,60 @@ Class {
 
 { #category : 'as yet unclassified' }
 ChatPharoMultiversPresenter >> availableAgentClasses [
-	"Return list of available agent classes"
 
-	^ ChatPharoSettings new availableApis
+	^ model availableApis
 ]
 
 { #category : 'as yet unclassified' }
 ChatPharoMultiversPresenter >> buildChainPreview [
-	"Build a visual representation of the current chain"
 
 	| text |
+	model multivers ifNil: [
+		^ 'Multivers support is not loaded. Load the AI-ChatPharo-Multivers package to configure agent chains.' ].
 	text := String streamContents: [ :stream |
-		stream nextPutAll: '=== Multiverse Chain Preview ==='; cr; cr.
+			        stream
+				        nextPutAll: '=== Multiverse Chain Preview ===';
+				        cr;
+				        cr.
 
-		model multivers enabled
-			ifTrue: [
-				model multivers steps isEmpty
-					ifTrue: [ stream nextPutAll: '(No steps configured - add at least 2 agents)' ]
-					ifFalse: [
-						stream nextPutAll: '[User Prompt]'; cr.
-						model multivers steps doWithIndex: [ :step :index |
-							stream nextPutAll: '     |'; cr.
-							stream nextPutAll: '     v'; cr.
-							stream nextPutAll: '[ Step '.
-							stream nextPutAll: index asString.
-							stream nextPutAll: ': '.
-							stream nextPutAll: step agentDisplayName.
-							step model ifNotEmpty: [
-								stream nextPutAll: ' ('.
-								stream nextPutAll: step model.
-								stream nextPutAll: ')' ].
-							stream nextPutAll: ' ]'; cr ].
-						stream nextPutAll: '     |'; cr.
-						stream nextPutAll: '     v'; cr.
-						stream nextPutAll: '[Final Response]' ] ]
-			ifFalse: [ stream nextPutAll: '(Multivers disabled - enable to use chain)' ] ].
+			        model multivers enabled
+				        ifTrue: [
+						        model multivers steps isEmpty
+							        ifTrue: [
+							        stream nextPutAll:
+								        '(No steps configured - add at least 2 agents)' ]
+							        ifFalse: [
+									        stream
+										        nextPutAll: '[User Prompt]';
+										        cr.
+									        model multivers steps doWithIndex: [ :step :index |
+											        stream
+												        nextPutAll: '     |';
+												        cr.
+											        stream
+												        nextPutAll: '     v';
+												        cr.
+											        stream nextPutAll: '[ Step '.
+											        stream nextPutAll: index asString.
+											        stream nextPutAll: ': '.
+											        stream nextPutAll: step agentDisplayName.
+											        step model ifNotEmpty: [
+													        stream nextPutAll: ' ('.
+													        stream nextPutAll: step model.
+													        stream nextPutAll: ')' ].
+											        stream
+												        nextPutAll: ' ]';
+												        cr ].
+									        stream
+										        nextPutAll: '     |';
+										        cr.
+									        stream
+										        nextPutAll: '     v';
+										        cr.
+									        stream nextPutAll: '[Final Response]' ] ]
+				        ifFalse: [
+				        stream nextPutAll:
+					        '(Multivers disabled - enable to use chain)' ] ].
 
 	^ text
 ]
@@ -109,14 +128,15 @@ ChatPharoMultiversPresenter >> buildStepConfigLayout [
 { #category : 'as yet unclassified' }
 ChatPharoMultiversPresenter >> connectPresenters [
 
+model multivers ifNil: [ ^ self ].
 	enabledCheckBox whenChangedDo: [ :state |
-		model multivers enabled: state.
-		self saveMultivers.
-		self updateChainPreview ].
+			model multivers enabled: state.
+			self saveMultivers.
+			self updateChainPreview ].
 
 	stepsList whenSelectedItemChangedDo: [ :item |
-		selectedStep := item.
-		self updateStepConfigPanel ].
+			selectedStep := item.
+			self updateStepConfigPanel ].
 
 	addStepButton action: [ self onAddStep ].
 	removeStepButton action: [ self onRemoveStep ].
@@ -138,8 +158,8 @@ ChatPharoMultiversPresenter >> connectPresenters [
 	refreshModelsButton action: [ self refreshModelsForSelectedAgent ].
 
 	templateInput whenTextChangedDo: [ :text |
-		model multivers chainPromptTemplate: text.
-		self saveMultivers ]
+			model multivers chainPromptTemplate: text.
+			self saveMultivers ]
 ]
 
 { #category : 'as yet unclassified' }
@@ -184,91 +204,120 @@ ChatPharoMultiversPresenter >> defaultLayout [
 { #category : 'as yet unclassified' }
 ChatPharoMultiversPresenter >> initializePresenters [
 
+	| supportAvailable |
 	super initializePresenters.
 
+	supportAvailable := model multivers notNil.
 	enabledCheckBox := self newCheckBox
-		label: 'Enable Multivers Mode (chain multiple agents together)';
-		state: model multivers enabled;
-		yourself.
+		                   label:
+			                   'Enable Multivers Mode (chain multiple agents together)';
+		                   state:
+			                   (supportAvailable and: [
+					                    model multivers enabled ]);
+		                   yourself.
 
 	stepsList := self newTable
-		addColumn: (SpStringTableColumn
-			title: '#'
-			evaluated: [ :step | step order asString ]);
-		addColumn: (SpStringTableColumn
-			title: 'Agent'
-			evaluated: [ :step | step agentDisplayName ]);
-		addColumn: (SpStringTableColumn
-			title: 'Model'
-			evaluated: [ :step | step model ifEmpty: [ '(default)' ] ]);
-		items: model multivers steps;
-		yourself.
+		             addColumn: (SpStringTableColumn
+				              title: '#'
+				              evaluated: [ :step | step order asString ]);
+		             addColumn: (SpStringTableColumn
+				              title: 'Agent'
+				              evaluated: [ :step | step agentDisplayName ]);
+		             addColumn: (SpStringTableColumn
+				              title: 'Model'
+				              evaluated: [ :step |
+					              step model ifEmpty: [ '(default)' ] ]);
+		             items: (supportAvailable
+				              ifTrue: [ model multivers steps ]
+				              ifFalse: [ #(  ) ]);
+		             yourself.
 
 	addStepButton := self newButton
-		label: '+';
-		icon: (self iconNamed: #add);
-		help: 'Add a new agent step to the chain';
-		yourself.
+		                 label: '+';
+		                 icon: (self iconNamed: #add);
+		                 help: 'Add a new agent step to the chain';
+		                 yourself.
 
 	removeStepButton := self newButton
-		label: '-';
-		icon: (self iconNamed: #remove);
-		help: 'Remove the selected step from the chain';
-		yourself.
+		                    label: '-';
+		                    icon: (self iconNamed: #remove);
+		                    help: 'Remove the selected step from the chain';
+		                    yourself.
 
 	moveUpButton := self newButton
-		label: '';
-		icon: (self iconNamed: #up);
-		help: 'Move step up in the chain (earlier execution)';
-		yourself.
+		                label: '';
+		                icon: (self iconNamed: #up);
+		                help:
+			                'Move step up in the chain (earlier execution)';
+		                yourself.
 
 	moveDownButton := self newButton
-		label: '';
-		icon: (self iconNamed: #down);
-		help: 'Move step down in the chain (later execution)';
-		yourself.
+		                  label: '';
+		                  icon: (self iconNamed: #down);
+		                  help:
+			                  'Move step down in the chain (later execution)';
+		                  yourself.
 
 	stepLabelInput := self newTextInput
-		placeholder: 'Optional step label...';
-		yourself.
+		                  placeholder: 'Optional step label...';
+		                  yourself.
 
 	agentDropList := self newDropList
-		help: 'Select the agent type for this step';
-		items: (self availableAgentClasses collect: [ :cls | cls displayName -> cls ]);
-		display: [ :assoc | assoc key ];
-		yourself.
+		                 help: 'Select the agent type for this step';
+		                 items:
+			                 (self availableAgentClasses collect: [ :cls |
+					                  cls displayName -> cls ]);
+		                 display: [ :assoc | assoc key ];
+		                 yourself.
 
 	modelDropList := self newDropList
-		help: 'Select the model for this agent';
-		items: #();
-		display: [ :m | m ];
-		yourself.
+		                 help: 'Select the model for this agent';
+		                 items: #(  );
+		                 display: [ :m | m ];
+		                 yourself.
 
 	refreshModelsButton := self newButton
-		label: '';
-		icon: (self iconNamed: #refresh);
-		help: 'Refresh available models for selected agent';
-		yourself.
+		                       label: '';
+		                       icon: (self iconNamed: #refresh);
+		                       help:
+			                       'Refresh available models for selected agent';
+		                       yourself.
 
 	systemPromptInput := self newText
-		placeholder: 'Custom system prompt (leave empty for default)...';
-		yourself.
+		                     placeholder:
+			                     'Custom system prompt (leave empty for default)...';
+		                     yourself.
 
 	stepConfigPanel := SpPresenter new
-		layout: self buildStepConfigLayout;
-		yourself.
+		                   layout: self buildStepConfigLayout;
+		                   yourself.
 
 	templateInput := self newText
-		text: model multivers chainPromptTemplate;
-		yourself.
+		                 text: (supportAvailable
+				                  ifTrue: [ model multivers chainPromptTemplate ]
+				                  ifFalse: [ '' ]);
+		                 yourself.
 
 	chainPreviewText := self newText
-		beNotEditable;
-		text: self buildChainPreview;
-		yourself.
+		                    beNotEditable;
+		                    text: self buildChainPreview;
+		                    yourself.
 
 	selectedStep := nil.
 	isUpdatingUI := false.
+	supportAvailable ifFalse: [
+		enabledCheckBox enabled: false.
+		stepsList enabled: false.
+		addStepButton enabled: false.
+		removeStepButton enabled: false.
+		moveUpButton enabled: false.
+		moveDownButton enabled: false.
+		agentDropList enabled: false.
+		modelDropList enabled: false.
+		refreshModelsButton enabled: false.
+		stepLabelInput enabled: false.
+		systemPromptInput enabled: false.
+		templateInput enabled: false ].
 	self updateStepConfigPanel
 ]
 

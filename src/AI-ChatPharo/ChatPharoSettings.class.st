@@ -142,7 +142,8 @@ ChatPharoSettings class >> loadOrNew [
 					  settings automaticSkillsEnabled: true ].
 				  settings skillToolsEnabled ifNil: [
 					  settings skillToolsEnabled: true ].
-				settings skillFilePaths ifNil: [ settings skillFilePaths: OrderedCollection new ].
+				  settings skillFilePaths ifNil: [
+					  settings skillFilePaths: OrderedCollection new ].
 				  settings askFeatureEnabled ifNil: [
 					  settings askFeatureEnabled: true ].
 				  settings codeFeatureEnabled ifNil: [
@@ -171,7 +172,8 @@ ChatPharoSettings class >> loadOrNew [
 				  settings ethicsDirector messageLimit ifNil: [
 					  settings ethicsDirector messageLimit: 50 ].
 				  settings multivers ifNil: [
-					  settings multivers: ChatPharoMultivers new ].
+					   (Smalltalk at: #ChatPharoMultivers ifAbsent: [ nil ])
+						  ifNotNil: [ :cls | settings multivers: cls new ] ].
 				  settings userLevel ifNil: [
 					  settings privateSetUserLevel: 'beginner' ].
 				  settings tutorialCompleted ifNil: [
@@ -191,7 +193,8 @@ ChatPharoSettings class >> loadOrNew [
 				  settings mcpEnabled ifNil: [
 					  settings privateSetMcpEnabled: false ].
 				  settings mcpRegistry ifNil: [
-					  settings privateSetMcpRegistry: ChatPharoMCPRegistry new ].
+					   (Smalltalk at: #ChatPharoMCPRegistry ifAbsent: [ nil ])
+						  ifNotNil: [ :cls | settings privateSetMcpRegistry: cls new ] ].
 				  settings externalApiWarningDismissed ifNil: [
 					  settings privateSetExternalApiWarningDismissed: false ].
 				  ^ settings ]
@@ -1139,9 +1142,10 @@ ChatPharoSettings >> models [
 
 { #category : 'initialization' }
 ChatPharoSettings >> multivers [
-	"Return the multiverse configuration"
 
-	^ multivers ifNil: [ multivers := ChatPharoMultivers new ]
+| multiversClass |
+	multiversClass := Smalltalk at: #ChatPharoMultivers ifAbsent: [ ^ nil ].
+	^ multivers ifNil: [ multivers := multiversClass new ]
 ]
 
 { #category : 'initialization' }
@@ -1150,24 +1154,26 @@ ChatPharoSettings >> multivers: aMultivers [
 	multivers := aMultivers.
 	self class setDefault: self.
 	self class saveDefault.
-	ChatPharoLogger logFrontend: 'Multivers configuration updated'
+	aMultivers ifNil: [ ^ self ].
+	ChatPharoLogger
+		logFrontend: 'Multivers configuration updated'
 		details: (Dictionary new
-			at: 'enabled' put: aMultivers enabled;
-			at: 'stepsCount' put: aMultivers stepsCount;
-			yourself)
+				 at: 'enabled' put: aMultivers enabled;
+				 at: 'stepsCount' put: aMultivers stepsCount;
+				 yourself)
 ]
 
 { #category : 'initialization' }
 ChatPharoSettings >> multiversEnabled [
-	"Return whether multivers mode is enabled"
 
-	^ self multivers enabled
+	^ self multivers
+		ifNil: [ false ]
+		ifNotNil: [ :m | m enabled ]
 ]
 
 { #category : 'initialization' }
 ChatPharoSettings >> multiversEnabled: aBoolean [
-	"Enable or disable multivers mode"
-
+self multivers ifNil: [ ^ self ].
 	self multivers enabled: aBoolean.
 	self class setDefault: self.
 	self class saveDefault
