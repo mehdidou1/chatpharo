@@ -1637,7 +1637,9 @@ ChatPharoBrowserEnvironment >> initializeWithEnvironment: env [
 		
 		} asOrderedCollection.
 	(Smalltalk hasClassNamed: #ChatPharoSkillEnvironment) ifTrue: [
-		tools addAll: (Smalltalk at: #ChatPharoSkillEnvironment) new tools ]
+		tools addAll: (Smalltalk at: #ChatPharoSkillEnvironment) new tools ].
+(Smalltalk hasClassNamed: #ChatPharoFinderEnvironment) ifTrue: [
+		tools addAll: (Smalltalk at: #ChatPharoFinderEnvironment) new tools ]
 ]
 
 { #category : 'initialization' }
