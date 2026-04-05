@@ -15,7 +15,10 @@ Class {
 		'automaticSkillsCheckBox',
 		'skillToolsCheckBox',
 		'skillDescriptionText',
-		'refreshButton'
+		'refreshButton',
+		'skillFilesList',
+		'addSkillFileButton',
+		'removeSkillFileButton'
 	],
 	#category : 'AI-ChatPharo-Spec-Skills',
 	#package : 'AI-ChatPharo-Spec',
@@ -23,9 +26,20 @@ Class {
 }
 
 { #category : 'as yet unclassified' }
-ChatPharoSkillsSettingsPresenter >> allSkills [
+ChatPharoSkillsSettingsPresenter >> addSkillFile [
+	"Prompt the user for a skill file, register it in settings, and reload."
 
-	"Returns all available skills from the registry"
+	| selected |
+	selected := UIManager default
+		chooseFullFileNameMatching: #('*.md' '*.txt' '*.skill' '*')
+		label: 'Select a skill file'.
+	selected ifNil: [ ^ self ].
+	model addSkillFilePath: selected asString.
+	self refreshSkillsList
+]
+
+{ #category : 'as yet unclassified' }
+ChatPharoSkillsSettingsPresenter >> allSkills [
 
 	^ ChatPharoSkillRegistry default allSkills
 ]
@@ -42,26 +56,36 @@ ChatPharoSkillsSettingsPresenter >> connectPresenters [
 	skillsList whenSelectedItemChangedDo: [ :item |
 		item ifNotNil: [ self updateDescriptionFor: item ] ].
 
-	refreshButton action: [ self refreshSkillsList ]
+	refreshButton action: [ self refreshSkillsList ].
+	addSkillFileButton action: [ self addSkillFile ].
+	removeSkillFileButton action: [ self removeSelectedSkillFile ]
 ]
 
 { #category : 'as yet unclassified' }
 ChatPharoSkillsSettingsPresenter >> defaultLayout [
 
 	^ SpBoxLayout newTopToBottom
-		spacing: 10;
+		  spacing: 10;
+		  add: (SpBoxLayout newLeftToRight
+				   add: 'Available Skills:' expand: false;
+				   addLast: refreshButton expand: false;
+				   yourself)
+		  expand: false;
+		  add: (SpPanedLayout newTopToBottom
+				   positionOfSlider: 60 percent;
+				   add: skillsList;
+				   add: skillDescriptionText;
+				   yourself);
+		  add: automaticSkillsCheckBox expand: false;
+		  add: skillToolsCheckBox expand: false;
+				add: 'Skill files:' expand: false;
+		add: skillFilesList;
 		add: (SpBoxLayout newLeftToRight
-			add: 'Available Skills:' expand: false;
-			addLast: refreshButton expand: false;
+			spacing: 5;
+			add: addSkillFileButton expand: false;
+			add: removeSkillFileButton expand: false;
 			yourself) expand: false;
-		add: (SpPanedLayout newTopToBottom
-			positionOfSlider: 60 percent;
-			add: skillsList;
-			add: skillDescriptionText;
-			yourself);
-		add: automaticSkillsCheckBox expand: false;
-		add: skillToolsCheckBox expand: false;
-		yourself
+		  yourself
 ]
 
 { #category : 'as yet unclassified' }
@@ -70,50 +94,83 @@ ChatPharoSkillsSettingsPresenter >> initializePresenters [
 	super initializePresenters.
 
 	skillsList := self newTable
-		addColumn: (SpCheckBoxTableColumn new
-			title: 'Enabled';
-			width: 60;
-			evaluated: [ :skill | model skillsEnabled includes: skill name ];
-			onActivation: [ :skill | model enableSkill: skill name ];
-			onDeactivation: [ :skill | model disableSkill: skill name ];
-			yourself);
-		addColumn: (SpStringTableColumn
-			title: 'Name'
-			evaluated: [ :skill | skill name ]);
-		addColumn: (SpStringTableColumn
-			title: 'Description'
-			evaluated: [ :skill | skill description ]);
-		items: self allSkills;
-		yourself.
+		              addColumn: (SpCheckBoxTableColumn new
+				               title: 'Enabled';
+				               width: 60;
+				               evaluated: [ :skill |
+					               model skillsEnabled includes: skill name ];
+				               onActivation: [ :skill |
+					               model enableSkill: skill name ];
+				               onDeactivation: [ :skill |
+					               model disableSkill: skill name ];
+				               yourself);
+		              addColumn:
+		              (SpStringTableColumn
+			               title: 'Name'
+			               evaluated: [ :skill | skill name ]);
+		              addColumn: (SpStringTableColumn
+				               title: 'Description'
+				               evaluated: [ :skill | skill description ]);
+		              items: self allSkills;
+		              yourself.
 
 	skillDescriptionText := self newText
-		beNotEditable;
-		text: 'Select a skill to see its description and context preview.';
-		yourself.
+		                        beNotEditable;
+		                        text:
+			                        'Select a skill to see its description and context preview.';
+		                        yourself.
 
 	automaticSkillsCheckBox := self newCheckBox
-		label: 'Enable automatic skill detection (model can request skills based on query context)';
-		state: model automaticSkillsEnabled;
-		yourself.
+		                           label:
+			                           'Enable automatic skill detection (model can request skills based on query context)';
+		                           state: model automaticSkillsEnabled;
+		                           yourself.
 
 	skillToolsCheckBox := self newCheckBox
-		label: 'Enable skill tools (allow model to call list_available_skills and get_skill_context)';
-		state: model skillToolsEnabled;
-		yourself.
+		                      label:
+			                      'Enable skill tools (allow model to call list_available_skills and get_skill_context)';
+		                      state: model skillToolsEnabled;
+		                      yourself.
 
 	refreshButton := self newButton
-		label: 'Refresh';
-		icon: (self iconNamed: #refresh);
-		help: 'Refresh the list of available skills';
+		                 label: 'Refresh';
+		                 icon: (self iconNamed: #refresh);
+		                 help: 'Refresh the list of available skills';
+		yourself.
+
+	skillFilesList := self newList
+		items: model skillFilePaths asArray;
+		yourself.
+
+	addSkillFileButton := self newButton
+		label: 'Add skill file...';
+		icon: (self iconNamed: #add);
+		help: 'Load an additional skill from a file on disk';
+		yourself.
+
+	removeSkillFileButton := self newButton
+		label: 'Remove';
+		icon: (self iconNamed: #remove);
+		help: 'Remove the selected skill file';
 		yourself
 ]
 
 { #category : 'as yet unclassified' }
 ChatPharoSkillsSettingsPresenter >> refreshSkillsList [
-	"Refresh the skills registry and update the list"
 
 	ChatPharoSkillRegistry default refresh.
-	skillsList items: self allSkills
+	skillsList items: self allSkills.
+	skillFilesList items: model skillFilePaths asArray
+]
+
+{ #category : 'as yet unclassified' }
+ChatPharoSkillsSettingsPresenter >> removeSelectedSkillFile [
+
+	| selected |
+	selected := skillFilesList selectedItem.
+	selected ifNil: [ ^ self ].
+	model removeSkillFilePath: selected.
+	self refreshSkillsList
 ]
 
 { #category : 'as yet unclassified' }

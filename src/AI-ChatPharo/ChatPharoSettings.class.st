@@ -38,6 +38,7 @@ Class {
 		'skillsEnabled',
 		'automaticSkillsEnabled',
 		'skillToolsEnabled',
+		'skillFilePaths',
 		'isConfigured',
 		'isDeveloper',
 		'developerId',
@@ -102,52 +103,97 @@ ChatPharoSettings class >> loadOrNew [
 			  [
 				  | settings |
 				  settings := STON fromStream: file.
-				  settings browserExtensionEnabled ifNil: [ settings browserExtensionEnabled: false ].
-								  settings debuggerExtensionEnabled ifNil: [ settings debuggerExtensionEnabled: false ].
+				  settings browserExtensionEnabled ifNil: [
+					  settings browserExtensionEnabled: false ].
+				  settings debuggerExtensionEnabled ifNil: [
+					  settings debuggerExtensionEnabled: false ].
 
-				  settings icebergExtensionEnabled ifNil: [ settings icebergExtensionEnabled: false ].
-				  settings commitMessageTemplate ifNil: [ settings commitMessageTemplate: settings defaultCommitMessageTemplate ].
-				  settings icebergSystemPrompt ifNil: [ settings icebergSystemPrompt: settings defaultIcebergSystemPrompt ].
-				  settings debuggerSystemPrompt ifNil: [ settings debuggerSystemPrompt: settings defaultDebuggerSystemPrompt ].
-				  settings browserAutoTabEnabled ifNil: [ settings browserAutoTabEnabled: true ].
+				  settings icebergExtensionEnabled ifNil: [
+					  settings icebergExtensionEnabled: false ].
+				  settings commitMessageTemplate ifNil: [
+					  settings commitMessageTemplate:
+						  settings defaultCommitMessageTemplate ].
+				  settings icebergSystemPrompt ifNil: [
+					  settings icebergSystemPrompt:
+						  settings defaultIcebergSystemPrompt ].
+				  settings debuggerSystemPrompt ifNil: [
+					  settings debuggerSystemPrompt:
+						  settings defaultDebuggerSystemPrompt ].
+				  settings browserAutoTabEnabled ifNil: [
+					  settings browserAutoTabEnabled: true ].
 				  settings browserToolsEnabled ifNil: [
-					  settings browserToolsEnabled: (ChatPharoBrowserEnvironment new tools collect: [ :t | t name ]) asOrderedCollection ].
+						  settings browserToolsEnabled:
+							  (ChatPharoBrowserEnvironment new tools collect: [ :t |
+								   t name ]) asOrderedCollection ].
 				  settings maximumIterations.
 				  settings cacheEnabled ifNil: [ settings cacheEnabled: true ].
-				  settings feedbackButtonsEnabled ifNil: [ settings feedbackButtonsEnabled: false ].
-				  settings welcomeMessageEnabled ifNil: [ settings welcomeMessageEnabled: false ].
+				  settings feedbackButtonsEnabled ifNil: [
+					  settings feedbackButtonsEnabled: false ].
+				  settings welcomeMessageEnabled ifNil: [
+					  settings welcomeMessageEnabled: false ].
 				  settings loggingEnabled.
-				  settings askFeatureEnabled ifNil: [ settings askFeatureEnabled: true ].
-				  settings codeFeatureEnabled ifNil: [ settings codeFeatureEnabled: true ].
-				  settings skillsEnabled ifNil: [ settings skillsEnabled: OrderedCollection new ].
-				  settings automaticSkillsEnabled ifNil: [ settings automaticSkillsEnabled: true ].
-				  settings skillToolsEnabled ifNil: [ settings skillToolsEnabled: true ].
-				  settings askFeatureEnabled ifNil: [ settings askFeatureEnabled: true ].
-				  settings codeFeatureEnabled ifNil: [ settings codeFeatureEnabled: true ].
-				  settings isConfigured ifNil: [ settings privateSetIsConfigured: false ].
-				  settings isDeveloper ifNil: [ settings privateSetIsDeveloper: false ].
-				  settings developerId ifNil: [ settings privateSetDeveloperId: '' ].
+				  settings askFeatureEnabled ifNil: [
+					  settings askFeatureEnabled: true ].
+				  settings codeFeatureEnabled ifNil: [
+					  settings codeFeatureEnabled: true ].
+				  settings skillsEnabled ifNil: [
+					  settings skillsEnabled: OrderedCollection new ].
+				  settings automaticSkillsEnabled ifNil: [
+					  settings automaticSkillsEnabled: true ].
+				  settings skillToolsEnabled ifNil: [
+					  settings skillToolsEnabled: true ].
+				settings skillFilePaths ifNil: [ settings skillFilePaths: OrderedCollection new ].
+				  settings askFeatureEnabled ifNil: [
+					  settings askFeatureEnabled: true ].
+				  settings codeFeatureEnabled ifNil: [
+					  settings codeFeatureEnabled: true ].
+				  settings isConfigured ifNil: [
+					  settings privateSetIsConfigured: false ].
+				  settings isDeveloper ifNil: [
+					  settings privateSetIsDeveloper: false ].
+				  settings developerId ifNil: [
+					  settings privateSetDeveloperId: '' ].
 				  settings userName ifNil: [ settings privateSetUserName: '' ].
-				  settings userOrganization ifNil: [ settings privateSetUserOrganization: '' ].
-				  settings ethicsDirector ifNil: [ settings privateSetEthicsDirector: ChatPharoEthicsDirector new ].
-				  (settings instVarNamed: 'ethicsDirectorEnabled') ifNotNil: [ :value | settings ethicsDirector enabled: value ].
-				  (settings instVarNamed: 'ethicsMandate') ifNotNil: [ :value | settings ethicsDirector mandate: value ].
-				  (settings instVarNamed: 'cognitiveLoadBudget') ifNotNil: [ :value | settings ethicsDirector cognitiveLoadBudget: value ].
-				  (settings instVarNamed: 'tokenBudget') ifNotNil: [ :value | settings ethicsDirector tokenBudget: value ].
-				  (settings instVarNamed: 'timeBudgetMinutes') ifNotNil: [ :value | settings ethicsDirector timeBudgetMinutes: value ].
-				  settings ethicsDirector messageLimit ifNil: [ settings ethicsDirector messageLimit: 50 ].
-				  settings multivers ifNil: [ settings multivers: ChatPharoMultivers new ].
-				  settings userLevel ifNil: [ settings privateSetUserLevel: 'beginner' ].
-				  settings tutorialCompleted ifNil: [ settings privateSetTutorialCompleted: false ].
-				  settings wantsTutorial ifNil: [ settings privateSetWantsTutorial: false ].
-				  settings advisorDefaultsConfigured ifNil: [ settings privateSetAdvisorDefaultsConfigured: false ].
-				  settings memoryEnabled ifNil: [ settings privateSetMemoryEnabled: true ].
-				  settings memoryRetentionDays ifNil: [ settings privateSetMemoryRetentionDays: 30 ].
-				  settings memoryMaxItems ifNil: [ settings privateSetMemoryMaxItems: 1000 ].
-				  settings memoryAutoSummarize ifNil: [ settings privateSetMemoryAutoSummarize: true ].
-				  settings mcpEnabled ifNil: [ settings privateSetMcpEnabled: false ].
-				  settings mcpRegistry ifNil: [ settings privateSetMcpRegistry: ChatPharoMCPRegistry new ].
-				  settings externalApiWarningDismissed ifNil: [ settings privateSetExternalApiWarningDismissed: false ].
+				  settings userOrganization ifNil: [
+					  settings privateSetUserOrganization: '' ].
+				  settings ethicsDirector ifNil: [
+					  settings privateSetEthicsDirector: ChatPharoEthicsDirector new ].
+				  (settings instVarNamed: 'ethicsDirectorEnabled') ifNotNil: [
+					  :value | settings ethicsDirector enabled: value ].
+				  (settings instVarNamed: 'ethicsMandate') ifNotNil: [ :value |
+					  settings ethicsDirector mandate: value ].
+				  (settings instVarNamed: 'cognitiveLoadBudget') ifNotNil: [
+					  :value | settings ethicsDirector cognitiveLoadBudget: value ].
+				  (settings instVarNamed: 'tokenBudget') ifNotNil: [ :value |
+					  settings ethicsDirector tokenBudget: value ].
+				  (settings instVarNamed: 'timeBudgetMinutes') ifNotNil: [ :value |
+					  settings ethicsDirector timeBudgetMinutes: value ].
+				  settings ethicsDirector messageLimit ifNil: [
+					  settings ethicsDirector messageLimit: 50 ].
+				  settings multivers ifNil: [
+					  settings multivers: ChatPharoMultivers new ].
+				  settings userLevel ifNil: [
+					  settings privateSetUserLevel: 'beginner' ].
+				  settings tutorialCompleted ifNil: [
+					  settings privateSetTutorialCompleted: false ].
+				  settings wantsTutorial ifNil: [
+					  settings privateSetWantsTutorial: false ].
+				  settings advisorDefaultsConfigured ifNil: [
+					  settings privateSetAdvisorDefaultsConfigured: false ].
+				  settings memoryEnabled ifNil: [
+					  settings privateSetMemoryEnabled: true ].
+				  settings memoryRetentionDays ifNil: [
+					  settings privateSetMemoryRetentionDays: 30 ].
+				  settings memoryMaxItems ifNil: [
+					  settings privateSetMemoryMaxItems: 1000 ].
+				  settings memoryAutoSummarize ifNil: [
+					  settings privateSetMemoryAutoSummarize: true ].
+				  settings mcpEnabled ifNil: [
+					  settings privateSetMcpEnabled: false ].
+				  settings mcpRegistry ifNil: [
+					  settings privateSetMcpRegistry: ChatPharoMCPRegistry new ].
+				  settings externalApiWarningDismissed ifNil: [
+					  settings privateSetExternalApiWarningDismissed: false ].
 				  ^ settings ]
 				  on: Error
 				  do: [ ^ self new ] ]
@@ -230,6 +276,23 @@ ChatPharoSettings >> addCustomTool: aCustomTool [
 	ChatPharoLogger logFrontend: 'Custom tool added'
 		details: (Dictionary new
 			at: 'tool' put: aCustomTool name;
+			yourself)
+]
+
+{ #category : 'skills' }
+ChatPharoSettings >> addSkillFilePath: aPathString [
+
+	| path |
+	path := aPathString asString.
+	path isEmpty ifTrue: [ ^ self ].
+	self skillFilePaths.
+	(skillFilePaths includes: path) ifTrue: [ ^ self ].
+	skillFilePaths add: path.
+	self class setDefault: self.
+	self class saveDefault.
+	ChatPharoLogger logFrontend: 'Skill file added'
+		details: (Dictionary new
+			at: 'path' put: path;
 			yourself)
 ]
 
@@ -798,11 +861,14 @@ ChatPharoSettings >> initialize [
 	askFeatureEnabled := true.
 	codeFeatureEnabled := true.
 	ethicsDirector := ChatPharoEthicsDirector new.
-	browserToolsEnabled := (ChatPharoBrowserEnvironment new tools collect: [ :t | t name ]) asOrderedCollection.
+	browserToolsEnabled := (ChatPharoBrowserEnvironment new tools
+		                        collect: [ :t | t name ])
+		                       asOrderedCollection.
 	maximumIterations := 3.
 	skillsEnabled := OrderedCollection new.
 	automaticSkillsEnabled := true.
 	skillToolsEnabled := true.
+	skillFilePaths := OrderedCollection new.
 	userLevel := 'beginner'.
 	tutorialCompleted := false.
 	wantsTutorial := false.
@@ -816,9 +882,11 @@ ChatPharoSettings >> initialize [
 	mcpEnabled := false.
 	mcpRegistry := ChatPharoMCPRegistry new.
 	ChatPharoLogger loggingEnabled: true.
-	ChatPharoLogger logSystem: 'Settings initialized' details: (Dictionary new
-			 at: 'defaultAgent' put: (ChatPharoLogger agentNameFor: agent);
-			 yourself)
+	ChatPharoLogger
+		logSystem: 'Settings initialized'
+		details: (Dictionary new
+				 at: 'defaultAgent' put: (ChatPharoLogger agentNameFor: agent);
+				 yourself)
 ]
 
 { #category : 'initialization' }
@@ -1313,6 +1381,20 @@ ChatPharoSettings >> removeCustomTool: aCustomTool [
 			yourself)
 ]
 
+{ #category : 'skills' }
+ChatPharoSettings >> removeSkillFilePath: aPathString [
+
+	self skillFilePaths.
+	(skillFilePaths includes: aPathString asString) ifFalse: [ ^ self ].
+	skillFilePaths remove: aPathString asString ifAbsent: [ ].
+	self class setDefault: self.
+	self class saveDefault.
+	ChatPharoLogger logFrontend: 'Skill file removed'
+		details: (Dictionary new
+			at: 'path' put: aPathString asString;
+			yourself)
+]
+
 { #category : 'custom tools' }
 ChatPharoSettings >> replaceCustomTool: oldTool with: newTool [
 	"Replace an existing custom tool, preserving order and preventing name collisions."
@@ -1428,6 +1510,24 @@ ChatPharoSettings >> sandboxTimeout: anInteger [
 	ChatPharoLogger logFrontend: 'Sandbox timeout updated'
 		details: (Dictionary new
 			at: 'timeout' put: anInteger;
+			yourself)
+]
+
+{ #category : 'skills' }
+ChatPharoSettings >> skillFilePaths [
+
+	^ skillFilePaths ifNil: [ skillFilePaths := OrderedCollection new ]
+]
+
+{ #category : 'skills' }
+ChatPharoSettings >> skillFilePaths: aCollection [
+
+	skillFilePaths := aCollection asOrderedCollection.
+	self class setDefault: self.
+	self class saveDefault.
+	ChatPharoLogger logFrontend: 'Skill file paths updated'
+		details: (Dictionary new
+			at: 'paths' put: skillFilePaths asArray printString;
 			yourself)
 ]
 

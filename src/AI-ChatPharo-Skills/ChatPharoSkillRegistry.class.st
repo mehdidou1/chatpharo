@@ -143,11 +143,13 @@ ChatPharoSkillRegistry >> disableSkillNamed: skillName [
 
 { #category : 'as yet unclassified' }
 ChatPharoSkillRegistry >> discoverSkills [
-	"Discovers all concrete skill subclasses and instantiates them"
 
-	^ ChatPharoSkill allSubclasses
+	| discovered |
+	discovered := (ChatPharoSkill allSubclasses
 		reject: [ :cls | cls isAbstract ]
-		thenCollect: [ :cls | cls new ]
+		thenCollect: [ :cls | cls new ]) asOrderedCollection.
+	discovered addAll: self loadFileSkillsFromSettings.
+	^ discovered
 ]
 
 { #category : 'as yet unclassified' }
@@ -192,6 +194,22 @@ ChatPharoSkillRegistry >> initialize [
 	super initialize.
 	skills := self discoverSkills asOrderedCollection.
 	self rebuildIndexes
+]
+
+{ #category : 'as yet unclassified' }
+ChatPharoSkillRegistry >> loadFileSkillsFromSettings [
+
+	| paths |
+	paths := [ ChatPharoSettings default skillFilePaths ]
+		on: Error
+		do: [ :e | #() ].
+	paths ifNil: [ ^ #() ].
+	^ paths
+		collect: [ :path |
+			[ ChatPharoFileSkill fromFile: path ]
+				on: Error
+				do: [ :e | nil ] ]
+		thenSelect: [ :skill | skill notNil ]
 ]
 
 { #category : 'indexing' }
