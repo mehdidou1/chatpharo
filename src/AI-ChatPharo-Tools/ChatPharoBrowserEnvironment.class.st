@@ -305,12 +305,25 @@ ChatPharoBrowserEnvironment >> applyFunctionGetClassMethods: arguments [
 { #category : 'initialization' }
 ChatPharoBrowserEnvironment >> applyFunctionGetClassSubclasses: arguments [
 
+	| maxSubclasses |
+	maxSubclasses := 100.
 	^ self
 		  response: 'subclasses_per_class'
 		  collect: [ :class |
-				  (class subclasses select: [ :subclass |
-					   self browserEnvironment includesClass: subclass ]) collect: [
-					  :subclasses | subclasses name ] ]
+				   | names result |
+				  names := ((class subclasses select: [ :subclass |
+					             self browserEnvironment includesClass: subclass ])
+					            collect: [ :subclass | subclass name ]) asSortedCollection
+					           asArray.
+				  result := Dictionary new.
+				  result at: 'count' put: names size.
+				  names size > maxSubclasses
+					  ifTrue: [
+							  result
+								  at: 'subclasses' put: (names first: maxSubclasses);
+								  at: 'truncated' put: true ]
+					  ifFalse: [ result at: 'subclasses' put: names ].
+				  result ]
 		  forClassesNamed: (arguments at: 'classes')
 ]
 
@@ -1149,7 +1162,15 @@ ChatPharoBrowserEnvironment >> functionGetClassSubclasses [
 
 	^ ChatPharoClient
 		  name: 'get_class_subclasses'
-		  description: 'Gets the subclasses of each given class.'
+		  description:
+			  'Gets the direct subclasses of each given class that are in scope. '
+			  ,
+			  'For each class, returns a dictionary with ''count'' (total number '
+			  ,
+			  'of direct subclasses) and ''subclasses'' (sorted names). If the '
+			  ,
+			  'list is capped to keep the response small, ''truncated'' is set to '
+			  , 'true and only a prefix of the subclasses is included.'
 		  parameters: (Dictionary
 				   with: 'type' -> 'object'
 				   with:

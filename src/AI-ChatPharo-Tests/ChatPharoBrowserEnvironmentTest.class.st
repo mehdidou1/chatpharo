@@ -89,11 +89,15 @@ ChatPharoBrowserEnvironmentTest >> testGetClassMethodsSelectorsOnly [
 { #category : 'running' }
 ChatPharoBrowserEnvironmentTest >> testGetClassSubclassesEmptyForLeafClass [
 
-    | reply subclasses |
-    reply := env applyFunctionGetClassSubclasses:
-                (Dictionary with: 'classes' -> (Array with: 'ChatPharoChat')).
-    subclasses := (reply at: 'subclasses_per_class') at: 'ChatPharoChat'.
-    self assert: subclasses isEmpty.
+	| reply subclasses entry |
+	reply := env applyFunctionGetClassSubclasses:
+		         (Dictionary with:
+			          'classes' -> (Array with: 'ChatPharoChat')).
+	 entry := (reply at: 'subclasses_per_class') at: 'ChatPharoChat'.
+    self assert: (entry at: 'count') equals: 0.
+    self assert: (entry at: 'subclasses') isEmpty.
+    self deny: (entry includesKey: 'truncated').
+
 ]
 
 { #category : 'running' }
