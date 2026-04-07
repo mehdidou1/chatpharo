@@ -76,7 +76,6 @@ ChatPharoSettingsPresenter >> chatPharo: anObject [
 
 { #category : 'initialization' }
 ChatPharoSettingsPresenter >> connectPresenters [
-	"Refresh models on button action"
 
 	| userAccepted |
 	modelsRefreshButton action: [
@@ -198,8 +197,6 @@ ChatPharoSettingsPresenter >> connectPresenters [
 					newValue ~= model messageLimit ifTrue: [
 							(ChatPharoSafetyAdvisor isValidMessageLimit: newValue)
 								ifFalse: [
-										"Hard rejection: the Ethics Director forbids non-positive limits
-										 regardless of developer status."
 										ChatPharoSafetyAdvisor rejectMessageLimitOn: self for: newValue.
 										messageLimitInput text: model messageLimit asString ]
 								ifTrue: [
@@ -337,17 +334,9 @@ ChatPharoSettingsPresenter >> initializePresenters [
 	notebook addPage: (SpNotebookPage title: 'Ethics' icon: (self iconNamed: #glamorousGoal) provider: [ self newEthicsTab ]).
 
 	notebook addPage: (SpNotebookPage title: 'Personal' icon: (self iconNamed: #user) provider: [ self newPersonalTab ]).
-
-	notebook addPage: (SpNotebookPage title: 'Skills' icon: (self iconNamed: #smallObjects) provider: [ self newSkillsTab ]).
-
-	notebook addPage: (SpNotebookPage title: 'Memory' icon: (self iconNamed: #history) provider: [ self newMemoryTab ]).
-
-	notebook addPage:
-		(SpNotebookPage title: 'Custom Tools' icon: (self iconNamed: #smallObjects) provider: [ self newCustomToolsTab ]).
-
-	notebook addPage: (SpNotebookPage title: 'MCP' icon: (self iconNamed: #network) provider: [ self newMCPTab ]).
-
-	notebook addPage: (SpNotebookPage title: 'Multivers' icon: (self iconNamed: #branch) provider: [ self newMultiversTab ]).
+	
+notebook addPage:
+		(SpNotebookPage title: 'Application' icon: (self iconNamed: #smallWindow) provider: [ self newApplicationTab ]).
 
 	modelsRefreshButton := self newButton
 		                       label: 'Refresh';
@@ -485,6 +474,12 @@ ChatPharoSettingsPresenter >> initializeWindow: aWindowPresenter [
 		initialExtent: 800@500
 ]
 
+{ #category : 'initialization' }
+ChatPharoSettingsPresenter >> newApplicationTab [
+
+	^ ChatPharoApplicationSettingsPresenter on: model
+]
+
 { #category : 'tabs' }
 ChatPharoSettingsPresenter >> newChatTab [
 
@@ -557,13 +552,6 @@ ChatPharoSettingsPresenter >> newConfigurationTab [
 				   add: apiSettingsContainer;
 				   yourself);
 		  yourself
-]
-
-{ #category : 'tabs' }
-ChatPharoSettingsPresenter >> newCustomToolsTab [
-	"Creates the Custom Tools configuration tab"
-
-	^ ChatPharoCustomToolsSettingsPresenter on: model
 ]
 
 { #category : 'tabs' }
@@ -724,27 +712,6 @@ ChatPharoSettingsPresenter >> newIcebergTab [
 ]
 
 { #category : 'tabs' }
-ChatPharoSettingsPresenter >> newMCPTab [
-	"Creates the MCP (Model Context Protocol) configuration tab"
-
-	^ ChatPharoMCPSettingsPresenter on: model
-]
-
-{ #category : 'tabs' }
-ChatPharoSettingsPresenter >> newMemoryTab [
-	"Creates the Long-Term Memory configuration tab"
-
-	^ ChatPharoMemoryPresenter on: model
-]
-
-{ #category : 'tabs' }
-ChatPharoSettingsPresenter >> newMultiversTab [
-	"Creates the Multivers configuration tab"
-
-	^ ChatPharoMultiversPresenter on: model
-]
-
-{ #category : 'tabs' }
 ChatPharoSettingsPresenter >> newPersonalTab [
 	"Create the personal configuration tab."
 
@@ -822,13 +789,6 @@ ChatPharoSettingsPresenter >> newPersonalTab [
 			add: statusRow expand: false;
 			yourself);
 		yourself
-]
-
-{ #category : 'tabs' }
-ChatPharoSettingsPresenter >> newSkillsTab [
-	"Creates the Skills configuration tab"
-
-	^ ChatPharoSkillsSettingsPresenter on: model
 ]
 
 { #category : 'initialization' }
