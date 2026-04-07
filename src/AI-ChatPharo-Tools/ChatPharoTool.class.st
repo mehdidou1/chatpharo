@@ -315,13 +315,41 @@ ChatPharoTool >> extraHeaders: aDictionary [
 ]
 
 { #category : 'initialization' }
+ChatPharoTool >> friendlyErrorMessageFor: response [
+
+	| status contents errorMessage |
+	status := response status.
+	contents := response contents ifNil: [ '' ].
+
+	errorMessage := [ | json |
+		json := STONJSON fromString: contents.
+		(json at: 'error' ifAbsent: [ nil ])
+			ifNotNil: [ :err | err at: 'message' ifAbsent: [ nil ] ]
+			ifNil: [ nil ] ]
+		on: Error do: [ :ex | nil ].
+
+	status = 402 ifTrue: [
+		^ 'Insufficient balance on your API account. Please add credits at your provider''s billing page.' ].
+	status = 401 ifTrue: [
+		^ 'Invalid or expired API key. Please check your API key in Settings.' ].
+	status = 429 ifTrue: [
+		^ 'Rate limit exceeded. Please wait a moment and try again.' ].
+	status = 404 ifTrue: [
+		^ 'Model not found. Please check your model selection in Settings.' ].
+	status = 503 ifTrue: [
+		^ 'The API service is temporarily unavailable. Please try again later.' ].
+	^ 'Could not get chat completion: ' , status asString , ' - ' , (errorMessage ifNil: [ contents ifEmpty: [ 'no details' ] ])
+]
+
+{ #category : 'initialization' }
 ChatPharoTool >> getResponseForHistory: history [
+
 	| messages data response message toolCalls thinkingText httpClient startedAt elapsedSeconds director |
 	messages := Array streamContents: [ :stream |
 			            systemPrompt ifNotNil: [ stream nextPut: (Dictionary with: 'role' -> 'system' with: 'content' -> systemPrompt) ].
 			            history putOpenAIChatMessagesOn: stream ].
 	data := self buildPayloadFor: messages.
-	data removeKey: 'chatpharo_ethics' ifAbsent: [].
+	data removeKey: 'chatpharo_ethics' ifAbsent: [ ].
 	httpClient := self cachedClient.
 	startedAt := DateAndTime now.
 	response := [
@@ -335,8 +363,7 @@ ChatPharoTool >> getResponseForHistory: history [
 			            director := ChatPharoSettings default ethicsDirector.
 			            director ifNotNil: [ director lastRequestDurationSeconds: elapsedSeconds ] ].
 	response isSuccess ifFalse: [
-		Error signal: 'Could not get chat completion: ' , response status asString , ' - ' , (response contents ifNil: [ 'no details' ]) ].
-	response isSuccess ifFalse: [ Error signal: 'Could not get chat completion' ].
+Error signal: (self friendlyErrorMessageFor: response) ].
 	message := ((STONJSON fromString: response contents) at: 'choices') first at: 'message'.
 	toolCalls := self toolCallsFromMessage: message.
 	thinkingText := nil.
