@@ -65,7 +65,7 @@ ChatPharoPackageBrowser >> defaultIconName [
 { #category : 'initialization' }
 ChatPharoPackageBrowser >> defaultTitle [
 
-	^ packageName
+	^ packageName ifNil: [ 'ChatPharo' ]
 ]
 
 { #category : 'history' }
@@ -91,11 +91,10 @@ ChatPharoPackageBrowser >> packageName: anObject [
 { #category : 'initialization' }
 ChatPharoPackageBrowser >> setUpModelFromContext [
 
-self storeChatForCurrentContext.
-	packageName := context lastSelectedClassGroup name.
+	self storeChatForCurrentContext.
+	packageName := context lastSelectedClassGroup ifNotNil: [ :g | g name ].
 	self updateAgentPackageName.
 	self updateChatForContext
-
 ]
 
 { #category : 'initialization' }

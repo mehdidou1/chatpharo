@@ -49,7 +49,7 @@ ChatPharoMethodBrowser >> className: anObject [
 { #category : 'initialization' }
 ChatPharoMethodBrowser >> defaultTitle [
 
-	^ methodName
+	^ methodName ifNil: [ 'ChatPharo' ]
 ]
 
 { #category : 'accessing' }
@@ -67,18 +67,19 @@ ChatPharoMethodBrowser >> methodName: anObject [
 { #category : 'initialization' }
 ChatPharoMethodBrowser >> setUpModelFromContext [
 
-		| methodClass |
+	| methodClass selectedMethod |
 	self storeChatForCurrentContext.
-	methodClass := context lastSelectedMethod methodClass.
-	className := methodClass name.
-	packageName := (methodClass respondsTo: #package)
+	selectedMethod := context lastSelectedMethod.
+	selectedMethod ifNil: [ ^ self ].
+	methodClass := selectedMethod methodClass.
+	className := methodClass ifNotNil: [ :c | c name ].
+	packageName := (methodClass notNil and: [ methodClass respondsTo: #package ])
 		               ifTrue: [ methodClass package name ]
 		               ifFalse: [ nil ].
-	methodName := context lastSelectedMethod selector.
-		self updateAgentPackageName.
+	methodName := selectedMethod selector.
+	self updateAgentPackageName.
 	self updateAgentMethodName.
 	self updateChatForContext
-
 ]
 
 { #category : 'update' }

@@ -867,11 +867,12 @@ ChatPharoBrowserEnvironment >> browserEnvironment: anObject [
 ChatPharoBrowserEnvironment >> classNamed: className [
 
 	| direct normalised |
+	className ifNil: [ ^ nil ].
 	direct := self browserEnvironment at: className asString asSymbol ifAbsent: [ nil ].
 	direct ifNotNil: [ ^ direct ].
 
 	normalised := className asLowercase.
-	^ self browserEnvironment classes detect: [ :cls | cls name  asString asLowercase = normalised ] ifNone: [ nil ]
+	^ self browserEnvironment classes detect: [ :cls | cls name asString asLowercase = normalised ] ifNone: [ nil ]
 ]
 
 { #category : 'initialization' }
@@ -1677,20 +1678,14 @@ ChatPharoBrowserEnvironment >> normalizeLineEndingsToCr: aString [
 
 { #category : 'initialization' }
 ChatPharoBrowserEnvironment >> packageNamed: packageName [
-    "Find a package by exact or case-insensitive name.  
-     Previous version stopped in the debugger (`self halt.`) and
-     always exited at the first ^ — hence many tools never worked."
 
-    | direct normalised |
-    direct := self browserEnvironment
-                 packageAt: packageName
-                 ifAbsent: [ nil ].
-    direct ifNotNil: [ ^ direct ].
+	| direct normalised |
+	packageName ifNil: [ ^ nil ].
+	direct := self browserEnvironment packageAt: packageName ifAbsent: [ nil ].
+	direct ifNotNil: [ ^ direct ].
 
-    normalised := packageName asLowercase.
-    ^ self browserEnvironment packages
-            detect: [ :pkg | pkg name asLowercase = normalised ]
-            ifNone: [ nil ]
+	normalised := packageName asLowercase.
+	^ self browserEnvironment packages detect: [ :pkg | pkg name asLowercase = normalised ] ifNone: [ nil ]
 ]
 
 { #category : 'initialization' }

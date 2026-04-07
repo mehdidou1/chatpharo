@@ -48,19 +48,20 @@ ChatPharoClassBrowser >> className: anObject [
 { #category : 'initialization' }
 ChatPharoClassBrowser >> defaultTitle [
 
-	^ className
+	^ className ifNil: [ 'ChatPharo' ]
 ]
 
 { #category : 'initialization' }
 ChatPharoClassBrowser >> setUpModelFromContext [
 
-self storeChatForCurrentContext.
+	self storeChatForCurrentContext.
+	packageName := context lastSelectedClassGroup ifNotNil: [ :g | g name ].
+	className := context lastSelectedClass ifNotNil: [ :c | c name ].
 	packageName := context lastSelectedClassGroup name.
 	className := context lastSelectedClass name.
 	self updateAgentPackageName.
 	self updateAgentClassName.
 	self updateChatForContext
-
 ]
 
 { #category : 'update' }
