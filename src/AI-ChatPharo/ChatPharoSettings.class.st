@@ -398,7 +398,7 @@ ChatPharoSettings >> availableApis [
 		ChatPharoLMStudioAgent.
 		  ChatPharoMistralAgent.
 		  ChatPharoClaudeAgent.
-		  ChatPharoDeepSeekAgent }
+		  ChatPharoDeepSeekAgent. ChatPharoOpenAIAgent }
 ]
 
 { #category : 'initialization' }
