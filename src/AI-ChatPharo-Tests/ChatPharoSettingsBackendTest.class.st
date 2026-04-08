@@ -113,7 +113,9 @@ ChatPharoSettingsBackendTest >> testBrowserExtensionSetterUpdatesFlag [
 ChatPharoSettingsBackendTest >> testBrowserToolsEnabledInitialisedFromEnvironment [
 
     | environmentTools |
-    environmentTools := ChatPharoBrowserEnvironment new tools collect: [ :tool | tool name ].
+       environmentTools := (ChatPharoBrowserEnvironment new tools
+            collect: [ :tool | tool name ])
+        reject: [ :toolName | toolName = 'finder_search' ].
     self assert: settings browserToolsEnabled asArray equals: environmentTools asArray.
 ]
 

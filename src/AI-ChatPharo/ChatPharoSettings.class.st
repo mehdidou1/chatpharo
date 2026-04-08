@@ -123,8 +123,7 @@ ChatPharoSettings class >> loadOrNew [
 					  settings browserAutoTabEnabled: true ].
 				  settings browserToolsEnabled ifNil: [
 						  settings browserToolsEnabled:
-							  (ChatPharoBrowserEnvironment new tools collect: [ :t |
-								   t name ]) asOrderedCollection ].
+							  settings defaultBrowserToolsEnabled ].
 				  settings maximumIterations.
 				  settings cacheEnabled ifNil: [ settings cacheEnabled: true ].
 				  settings feedbackButtonsEnabled ifNil: [
@@ -585,6 +584,14 @@ ChatPharoSettings >> debuggerSystemPrompt: aString [
 	self class saveDefault
 ]
 
+{ #category : 'advisor' }
+ChatPharoSettings >> defaultBrowserToolsEnabled [
+
+	^ ((ChatPharoBrowserEnvironment new tools collect: [ :tool |
+		    tool name ]) reject: [ :toolName | toolName = 'finder_search' ])
+		  asOrderedCollection
+]
+
 { #category : 'accessing' }
 ChatPharoSettings >> defaultCommitMessageTemplate [
 
@@ -864,9 +871,7 @@ ChatPharoSettings >> initialize [
 	askFeatureEnabled := true.
 	codeFeatureEnabled := true.
 	ethicsDirector := ChatPharoEthicsDirector new.
-	browserToolsEnabled := (ChatPharoBrowserEnvironment new tools
-		                        collect: [ :t | t name ])
-		                       asOrderedCollection.
+	browserToolsEnabled := self defaultBrowserToolsEnabled.
 	maximumIterations := 3.
 	skillsEnabled := OrderedCollection new.
 	automaticSkillsEnabled := true.
