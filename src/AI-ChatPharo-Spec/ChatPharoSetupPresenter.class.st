@@ -20,8 +20,6 @@ Class {
 		'skipDeveloperButton',
 		'userNameInput',
 		'userOrganizationInput',
-		'saveButton',
-		'cancelButton',
 		'statusLabel',
 		'currentStep',
 		'contentContainer',
@@ -102,22 +100,6 @@ ChatPharoSetupPresenter >> askOkToClose [
 		self inform: 'Please choose whether to use recommended settings or configure manually.'.
 		^ false ].
 	^ true
-]
-
-{ #category : 'layout' }
-ChatPharoSetupPresenter >> cancelSetup [
-	"Cancel the setup without saving. Only allowed if advisor defaults have been configured."
-
-	| settings |
-	settings := ChatPharoSettings default.
-
-	"Prevent canceling if advisor defaults haven't been configured"
-	settings advisorDefaultsConfigured ifFalse: [
-		self inform: 'Please complete the advisor defaults configuration before canceling.'.
-		^ self ].
-
-	settings isConfigured: true.
-	self window close
 ]
 
 { #category : 'layout' }
@@ -225,12 +207,10 @@ ChatPharoSetupPresenter >> generateLocalDeveloperId [
 ChatPharoSetupPresenter >> initialize [
 
 	super initialize.
-	currentStep := #developer.
+	currentStep := #welcome.
 	isDeveloperVerified := false.
-isDeveloperVerified := false.
 	selectedLevel := 'beginner'.
 	levelButtons := Dictionary new.
-		levelButtons := Dictionary new.
 	useAdvisorDefaults := nil
 ]
 
@@ -240,20 +220,20 @@ ChatPharoSetupPresenter >> initializePresenters [
 	super initializePresenters.
 
 	titleLabel := self newLabel
-		label: 'Welcome to ChatPharo';
-		yourself.
+		              label: 'Welcome to ChatPharo';
+		              yourself.
 
 	descriptionLabel := self newLabel
-		label: 'Let''s set up your profile. Are you a ChatPharo developer?';
-		yourself.
+		                    label: 'Let''s set up your profile. Are you a ChatPharo developer?';
+		                    yourself.
 
 	statusLabel := self newLabel
-		label: '';
-		yourself.
+		               label: '';
+		               yourself.
 
 	contentContainer := SpPresenter new.
 
-	self showDeveloperStep
+	self showWelcomeStep
 ]
 
 { #category : 'layout' }
@@ -396,7 +376,7 @@ ChatPharoSetupPresenter >> showDeveloperStep [
 
 	developerIdInput := self newTextInput
 		                    placeholder: 'Enter your Developer ID...';
-		text: (ChatPharoSettings default developerId ifEmpty: [ '12345' ]);
+		                    text: (ChatPharoSettings default developerId ifEmpty: [ '12345' ]);
 		                    yourself.
 
 	verifyButton := self newButton
@@ -416,17 +396,6 @@ ChatPharoSetupPresenter >> showDeveloperStep [
 		                       action: [ self showAdvisorDefaultsStep ];
 		                       yourself.
 
-	configureLaterButton := self newButton
-		                        label: 'Configure later';
-		                        action: [ self configureLater ];
-		                        yourself.
-
-
-	cancelButton := self newButton
-		                label: 'Cancel';
-		                action: [ self cancelSetup ];
-		                yourself.
-
 	idRow := SpBoxLayout newHorizontal
 		         spacing: 8;
 		         add: developerIdInput expand: true;
@@ -441,8 +410,6 @@ ChatPharoSetupPresenter >> showDeveloperStep [
 	buttonRow := SpBoxLayout newHorizontal
 		             spacing: 8;
 		             add: skipDeveloperButton expand: true;
-		             add: configureLaterButton expand: true;
-		             add: cancelButton expand: false;
 		             yourself.
 
 	contentContainer layout: (SpBoxLayout newTopToBottom
@@ -465,80 +432,78 @@ ChatPharoSetupPresenter >> showExperienceLevelStep [
 
 	titleLabel label: 'Your Pharo Experience'.
 	descriptionLabel label: 'What is your experience level with Pharo?'.
-	statusLabel label: ''.
-
-	"Create level selection buttons with descriptions"
+	statusLabel label: ''. "Create level selection buttons with descriptions"
 	beginnerButton := self newButton
-		label: 'Beginner';
-		icon: (self iconNamed: #smallNew);
-		help: 'New to Pharo - I am just starting to learn';
-		action: [ self selectLevel: 'beginner' ];
-		yourself.
+		                  label: 'Beginner';
+		                  icon: (self iconNamed: #smallNew);
+		                  help: 'New to Pharo - I am just starting to learn';
+		                  action: [ self selectLevel: 'beginner' ];
+		                  yourself.
 
 	intermediateButton := self newButton
-		label: 'Intermediate';
-		icon: (self iconNamed: #smallDoIt);
-		help: 'Familiar with Pharo basics - I can write simple programs';
-		action: [ self selectLevel: 'intermediate' ];
-		yourself.
+		                      label: 'Intermediate';
+		                      icon: (self iconNamed: #smallDoIt);
+		                      help: 'Familiar with Pharo basics - I can write simple programs';
+		                      action: [ self selectLevel: 'intermediate' ];
+		                      yourself.
 
 	advancedButton := self newButton
-		label: 'Advanced';
-		icon: (self iconNamed: #smallSystemBrowser);
-		help: 'Experienced Pharo developer - I know the system well';
-		action: [ self selectLevel: 'advanced' ];
-		yourself.
+		                  label: 'Advanced';
+		                  icon: (self iconNamed: #smallSystemBrowser);
+		                  help: 'Experienced Pharo developer - I know the system well';
+		                  action: [ self selectLevel: 'advanced' ];
+		                  yourself.
 
 	levelButtons := Dictionary new
-		at: 'beginner' put: beginnerButton;
-		at: 'intermediate' put: intermediateButton;
-		at: 'advanced' put: advancedButton;
-		yourself.
-
-	"Highlight the currently selected level"
+		                at: 'beginner' put: beginnerButton;
+		                at: 'intermediate' put: intermediateButton;
+		                at: 'advanced' put: advancedButton;
+		                yourself. "Highlight the currently selected level"
 	self updateLevelButtonStyles.
 
 	levelContainer := SpBoxLayout newTopToBottom
-		spacing: 12;
-		add: (self createLevelOptionRow: beginnerButton
-			title: 'Beginner'
-			description: 'New to Pharo - I am just starting to learn') expand: false;
-		add: (self createLevelOptionRow: intermediateButton
-			title: 'Intermediate'
-			description: 'Familiar with Pharo basics - I can write programs') expand: false;
-		add: (self createLevelOptionRow: advancedButton
-			title: 'Advanced'
-			description: 'Experienced Pharo developer - I know the system well') expand: false;
-		yourself.
+		                  spacing: 12;
+		                  add:
+			                  (self
+				                   createLevelOptionRow: beginnerButton
+				                   title: 'Beginner'
+				                   description: 'New to Pharo - I am just starting to learn')
+		                  expand: false;
+		                  add: (self
+				                   createLevelOptionRow: intermediateButton
+				                   title: 'Intermediate'
+				                   description: 'Familiar with Pharo basics - I can write programs')
+		                  expand: false;
+		                  add:
+			                  (self
+				                   createLevelOptionRow: advancedButton
+				                   title: 'Advanced'
+				                   description: 'Experienced Pharo developer - I know the system well')
+		                  expand: false;
+		                  yourself.
 
 	continueButton := self newButton
-		label: 'Continue';
-		icon: (self iconNamed: #glamorousGo);
-		action: [ self showTutorialOfferStep ];
-		yourself.
+		                  label: 'Continue';
+		                  icon: (self iconNamed: #glamorousGo);
+		                  action: [ self showTutorialOfferStep ];
+		                  yourself.
 
 	backButton := self newButton
-		label: 'Back';
-		action: [ self showUserInfoStep ];
-		yourself.
-
-	cancelButton := self newButton
-		label: 'Cancel';
-		action: [ self cancelSetup ];
-		yourself.
+		              label: 'Back';
+		              action: [ self showUserInfoStep ];
+		              yourself.
 
 	buttonRow := SpBoxLayout newHorizontal
-		spacing: 8;
-		add: backButton expand: false;
-		add: continueButton expand: false;
-		add: cancelButton expand: false;
-		yourself.
+		             spacing: 8;
+		             add: backButton expand: false;
+		             add: continueButton expand: false;
+		             yourself.
 
 	contentContainer layout: (SpBoxLayout newTopToBottom
-		spacing: 12;
-		add: levelContainer expand: true;
-		add: buttonRow expand: false;
-		yourself).
+			 spacing: 12;
+			 add: levelContainer expand: true;
+			 add: buttonRow expand: false;
+			 yourself).
 
 
 	self layout: self defaultLayout
@@ -556,53 +521,47 @@ ChatPharoSetupPresenter >> showTutorialOfferStep [
 	statusLabel label: ''.
 
 	infoLabel := self newLabel
-		label: 'Learn how to get the most out of ChatPharo with our interactive tutorial.';
-		yourself.
+		             label: 'Learn how to get the most out of ChatPharo with our interactive tutorial.';
+		             yourself.
 
 	tutorialDescription := self newLabel
-		label: 'The tutorial covers: starting chats, sending messages, using code suggestions, and more.';
-		yourself.
+		                       label: 'The tutorial covers: starting chats, sending messages, using code suggestions, and more.';
+		                       yourself.
 
 	tutorialCheckbox := self newCheckBox
-		label: 'Yes, show me the tutorial after setup';
-		state: true;
-		yourself.
+		                    label: 'Yes, show me the tutorial after setup';
+		                    state: true;
+		                    yourself.
 
 	tutorialContainer := SpBoxLayout newTopToBottom
-		spacing: 16;
-		add: infoLabel expand: false;
-		add: tutorialDescription expand: false;
-		add: tutorialCheckbox expand: false;
-		yourself.
+		                     spacing: 16;
+		                     add: infoLabel expand: false;
+		                     add: tutorialDescription expand: false;
+		                     add: tutorialCheckbox expand: false;
+		                     yourself.
 
 	finishButton := self newButton
-		label: 'Finish Setup';
-		icon: (self iconNamed: #glamorousAccept);
-		action: [ self finishSetup ];
-		yourself.
+		                label: 'Finish Setup';
+		                icon: (self iconNamed: #glamorousAccept);
+		                action: [ self finishSetup ];
+		                yourself.
 
 	backButton := self newButton
-		label: 'Back';
-		action: [ self showExperienceLevelStep ];
-		yourself.
-
-	cancelButton := self newButton
-		label: 'Cancel';
-		action: [ self cancelSetup ];
-		yourself.
+		              label: 'Back';
+		              action: [ self showExperienceLevelStep ];
+		              yourself.
 
 	buttonRow := SpBoxLayout newHorizontal
-		spacing: 8;
-		add: backButton expand: false;
-		add: finishButton expand: false;
-		add: cancelButton expand: false;
-		yourself.
+		             spacing: 8;
+		             add: backButton expand: false;
+		             add: finishButton expand: false;
+		             yourself.
 
 	contentContainer layout: (SpBoxLayout newTopToBottom
-		spacing: 12;
-		add: tutorialContainer expand: true;
-		add: buttonRow expand: false;
-		yourself).
+			 spacing: 12;
+			 add: tutorialContainer expand: true;
+			 add: buttonRow expand: false;
+			 yourself).
 
 	self layout: self defaultLayout
 ]
@@ -635,14 +594,9 @@ ChatPharoSetupPresenter >> showUserInfoStep [
 		                         yourself.
 
 	continueButton := self newButton
-		label: 'Continue';
-		icon: (self iconNamed: #glamorousGo);
-		action: [ self showExperienceLevelStep ].
-
-	cancelButton := self newButton
-		                label: 'Cancel';
-		                action: [ self cancelSetup ];
-		                yourself.
+		                  label: 'Continue';
+		                  icon: (self iconNamed: #glamorousGo);
+		                  action: [ self showExperienceLevelStep ].
 
 	nameRow := SpBoxLayout newHorizontal
 		           spacing: 8;
@@ -659,15 +613,72 @@ ChatPharoSetupPresenter >> showUserInfoStep [
 	buttonRow := SpBoxLayout newHorizontal
 		             spacing: 8;
 		             add: continueButton expand: false;
-		             add: cancelButton expand: false;
 		             yourself.
 
 	contentContainer layout: (SpBoxLayout newTopToBottom
+			 spacing: 12;
+			 add: infoLabel expand: false;
+			 add: nameRow expand: false;
+			 add: orgRow expand: false;
+			 add: buttonRow expand: false;
+			 yourself).
+
+	self layout: self defaultLayout
+]
+
+{ #category : 'initialization' }
+ChatPharoSetupPresenter >> showWelcomeStep [
+	"Show the welcome step with privacy notice."
+
+	| welcomeContainer privacyLabel privacyDetailLabel termsButton continueButton configureLaterButton buttonRow |
+	currentStep := #welcome.
+
+	titleLabel label: 'Welcome to ChatPharo'.
+	descriptionLabel label: 'Your AI-powered assistant for Pharo development.'.
+	statusLabel label: ''.
+
+	privacyLabel := self newLabel
+		label: 'ChatPharo is fully private.';
+		yourself.
+
+	privacyDetailLabel := self newLabel
+		label: 'We do not collect any personal data. All conversations and settings stay on your machine.';
+		yourself.
+
+	termsButton := self newButton
+		label: 'Privacy Policy & Terms';
+		icon: (self iconNamed: #glamorousBrowse);
+		action: [ WebBrowser openOn: 'https://pharo-llm.github.io' ];
+		yourself.
+
+	continueButton := self newButton
+		label: 'Get Started';
+		icon: (self iconNamed: #glamorousGo);
+		action: [ self showDeveloperStep ];
+		yourself.
+
+	configureLaterButton := self newButton
+		label: 'Configure later';
+		action: [ self configureLater ];
+		yourself.
+
+	welcomeContainer := SpBoxLayout newTopToBottom
+		spacing: 16;
+		add: privacyLabel expand: false;
+		add: privacyDetailLabel expand: false;
+		add: termsButton expand: false;
+		yourself.
+
+	buttonRow := SpBoxLayout newHorizontal
+		spacing: 8;
+		add: continueButton expand: false;
+		add: configureLaterButton expand: false;
+		yourself.
+
+	contentContainer layout: (SpBoxLayout newTopToBottom
 		spacing: 12;
-		add: infoLabel expand: false;
-		add: nameRow expand: false;
-		add: orgRow expand: false;
-	add: buttonRow expand: false;
+		add: welcomeContainer expand: true;
+		add: buttonRow expand: false;
 		yourself).
 
 	self layout: self defaultLayout
