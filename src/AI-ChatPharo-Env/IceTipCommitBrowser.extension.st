@@ -14,6 +14,6 @@ IceTipCommitBrowser >> initializeAcceptShortcut [
 	commentPanel commentText
 		addShortcutWith: [ :action |
 			action
-				shortcutKey: $s actionModifier;
+				shortcutKey: ChatPharoShortcuts current acceptCommitShortcut;
 				action: [ self accept ] ]
 ]

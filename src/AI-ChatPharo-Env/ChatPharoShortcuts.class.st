@@ -1,7 +1,10 @@
 "
-Defines and installs global keyboard shortcuts for opening ChatPharo.
-
-This class centralizes keymap registration so integrations can bind ChatPharo commands consistently.
+I am a class defining the current shortcuts of ChatPharo. My main purpose is to avoid the duplication of shortcut definition amongst ChatPharo tools and to allow to change the shortcuts from a single place.
+Users may query me to know the key combinations used for ChatPharo actions.
+EXAMPLES
+ChatPharoShortcuts current openChatPharoShortcut => O, C (sequential)
+ChatPharoShortcuts current askShortcut => Cmd-P
+ChatPharoShortcuts current codeShortcut => Cmd-Shift-K
 "
 Class {
 	#name : 'ChatPharoShortcuts',
@@ -11,19 +14,24 @@ Class {
 	#tag : 'Menu'
 }
 
-{ #category : 'as yet unclassified' }
+{ #category : 'keymaps' }
 ChatPharoShortcuts class >> chatPharoKeymapOn: aBuilder [
-	"Define the keyboard shortcut category for ChatPharo"
 	<keymap>
 
 	(aBuilder shortcut: #openChatPharo)
 		category: #ChatPharo
-		default: $o asKeyCombination, $c asKeyCombination
+		default: self current openChatPharoShortcut
 		do: [ :target | self openChatPharo ]
 		description: 'Open ChatPharo'
 ]
 
-{ #category : 'as yet unclassified' }
+{ #category : 'keymaps' }
+ChatPharoShortcuts class >> current [
+
+	^ self new
+]
+
+{ #category : 'keymaps' }
 ChatPharoShortcuts class >> installAsGlobalCategory [
 	"Install ChatPharo shortcuts as a global keyboard category"
 
@@ -32,7 +40,7 @@ ChatPharoShortcuts class >> installAsGlobalCategory [
 
 	category
 		addKeymapEntry: (KMKeymap
-			shortcut: ($o asKeyCombination, $c asKeyCombination)
+			shortcut: self current openChatPharoShortcut
 			action: [ self openChatPharo ]).
 
 	KMRepository default addCategory: category.
@@ -40,9 +48,33 @@ ChatPharoShortcuts class >> installAsGlobalCategory [
 	^ category
 ]
 
-{ #category : 'as yet unclassified' }
+{ #category : 'keymaps' }
 ChatPharoShortcuts class >> openChatPharo [
 	"Open a new ChatPharo window"
 
 	ChatPharo new presenter open
+]
+
+{ #category : 'visiting' }
+ChatPharoShortcuts >> acceptCommitShortcut [ 
+
+	^ $s actionModifier
+]
+
+{ #category : 'visiting' }
+ChatPharoShortcuts >> askShortcut [
+
+	^ $p meta
+]
+
+{ #category : 'visiting' }
+ChatPharoShortcuts >> codeShortcut [
+
+	^ $k meta shift
+]
+
+{ #category : 'visiting' }
+ChatPharoShortcuts >> openChatPharoShortcut [
+
+	^ $o asKeyCombination, $c asKeyCombination
 ]

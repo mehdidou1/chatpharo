@@ -25,7 +25,7 @@ ChatPharoCodeCommand class >> canBeExecutedInContext: aContext [
 ChatPharoCodeCommand class >> chatPharoActivation [
 
         <classAnnotation>
-        ^ (CmdShortcutActivation by: $k meta shift for: ClyFullBrowserMethodContext)
+        ^ (CmdShortcutActivation by: ChatPharoShortcuts current codeShortcut shift for: ClyFullBrowserMethodContext)
 ]
 
 { #category : 'testing' }
