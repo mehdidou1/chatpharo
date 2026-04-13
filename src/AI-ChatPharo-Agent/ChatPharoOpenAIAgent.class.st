@@ -1,3 +1,6 @@
+"
+Open AI agent backend
+"
 Class {
 	#name : 'ChatPharoOpenAIAgent',
 	#superclass : 'ChatPharoAgent',
@@ -188,10 +191,11 @@ ChatPharoOpenAIAgent >> testConnection [
 { #category : 'accessing' }
 ChatPharoOpenAIAgent >> tools [
 
-	| available settings customToolClients |
+	| available settings customToolClients mcpToolClients |
 	settings := ChatPharoSettings default.
 	available := ChatPharoBrowserEnvironment new tools.
 	available := available select: [ :tool | settings browserToolsEnabled includes: tool name ].
 	customToolClients := settings customToolsAsClients.
-	^ available , customToolClients
+	mcpToolClients := settings mcpToolsAsClients.
+	^ available , customToolClients , mcpToolClients
 ]

@@ -204,13 +204,11 @@ ChatPharoMistralAgent >> testConnection [
 { #category : 'accessing' }
 ChatPharoMistralAgent >> tools [
 
-	
-    | available settings customToolClients |
-    settings := ChatPharoSettings default.
-    available := ChatPharoBrowserEnvironment new tools.
-    available := available select: [ :tool |
-        settings browserToolsEnabled includes: tool name ].
-    "Add enabled custom tools"
-    customToolClients := settings customToolsAsClients.
-    ^ available , customToolClients
+	| available settings customToolClients mcpToolClients |
+	settings := ChatPharoSettings default.
+	available := ChatPharoBrowserEnvironment new tools.
+	available := available select: [ :tool | settings browserToolsEnabled includes: tool name ]. 
+	customToolClients := settings customToolsAsClients.
+	  mcpToolClients := settings mcpToolsAsClients.
+    ^ available , customToolClients , mcpToolClients
 ]

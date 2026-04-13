@@ -409,3 +409,60 @@ ChatPharoMCPTest >> testMCPToolServerAssignment [
 	tool server: server.
 	self assert: tool server equals: server
 ]
+
+{ #category : 'running' }
+ChatPharoMCPTest >> testMCPToolsFlowToAgents [
+	"Regression test for the Codex/MCP connection bug: when MCP is enabled and a
+	server (e.g. `codex mcp`) is connected with discovered tools, every agent's
+	tools list MUST include the MCP tools alongside built-in and custom tools.
+	Before the fix, agents only exposed customToolsAsClients and silently dropped
+	MCP tools, making the registry useless from the agent's perspective."
+
+	| previousDefault testSettings fakeServer fakeTool agentClasses |
+	previousDefault := ChatPharoSettings default.
+	[
+		testSettings := ChatPharoSettings new.
+		ChatPharoSettings setDefault: testSettings.
+
+		"Build a fake MCP server that reports as connected with one tool — no
+		subprocess is started so the test stays hermetic."
+		fakeTool := ChatPharoMCPTool new
+			name: 'codex_exec';
+			description: 'Run a Codex prompt';
+			yourself.
+		fakeServer := ChatPharoMCPServer new
+			name: 'Codex CLI';
+			command: 'codex';
+			arguments: #( 'mcp' );
+			enabled: false;
+			yourself.
+		fakeServer status: #connected.
+		fakeTool server: fakeServer.
+		fakeServer tools add: fakeTool.
+		testSettings mcpRegistry addServer: fakeServer.
+		"Use the private setter to avoid the disk write that mcpEnabled: triggers."
+		testSettings privateSetMcpEnabled: true.
+
+		"Sanity check: settings exposes the MCP tool as a client."
+		self assert: testSettings mcpToolsAsClients size equals: 1.
+		self
+			assert: testSettings mcpToolsAsClients first name
+			equals: 'codex_exec'.
+
+		"Every agent class must surface MCP tools through its tools method."
+		agentClasses := {
+			ChatPharoOpenAIAgent.
+			ChatPharoClaudeAgent.
+			ChatPharoMistralAgent.
+			ChatPharoGeminiAgent.
+			ChatPharoOllamaAgent.
+			ChatPharoDeepSeekAgent.
+			ChatPharoLMStudioAgent }.
+		agentClasses do: [ :cls |
+			| agent |
+			agent := cls new.
+			self
+				assert: (agent tools anySatisfy: [ :t | t name = 'codex_exec' ])
+				description: cls name , ' must expose MCP tools to the LLM' ] ]
+		ensure: [ ChatPharoSettings setDefault: previousDefault ]
+]

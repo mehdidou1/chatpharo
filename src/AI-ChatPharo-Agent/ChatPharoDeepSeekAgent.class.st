@@ -213,12 +213,11 @@ ChatPharoDeepSeekAgent >> testConnection [
 { #category : 'tools support' }
 ChatPharoDeepSeekAgent >> tools [
 
-	| available settings customToolClients |
+	| available settings customToolClients mcpToolClients |
 	settings := ChatPharoSettings default.
 	available := ChatPharoBrowserEnvironment new tools.
-	available := available select: [ :tool |
-		settings browserToolsEnabled includes: tool name ].
-	"Add enabled custom tools"
+	available := available select: [ :tool | settings browserToolsEnabled includes: tool name ].
 	customToolClients := settings customToolsAsClients.
-	^ available , customToolClients
+		mcpToolClients := settings mcpToolsAsClients.
+	^ available , customToolClients , mcpToolClients
 ]

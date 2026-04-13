@@ -216,12 +216,12 @@ ChatPharoClaudeAgent >> testConnection [
 { #category : 'tools support' }
 ChatPharoClaudeAgent >> tools [
 
-	| available settings customToolClients |
+	| available settings customToolClients mcpToolClients |
 	settings := ChatPharoSettings default.
 	available := ChatPharoBrowserEnvironment new tools.
 	available := available select: [ :tool |
 		settings browserToolsEnabled includes: tool name ].
-	"Add enabled custom tools"
 	customToolClients := settings customToolsAsClients.
-	^ available , customToolClients
+	mcpToolClients := settings mcpToolsAsClients.
+	^ available , customToolClients , mcpToolClients
 ]
