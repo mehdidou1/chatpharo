@@ -95,16 +95,12 @@ ChatPharoMCPServer >> connectionTime [
 { #category : 'accessing' }
 ChatPharoMCPServer >> copyEssentialEnvironmentVarsTo: aSubprocess [
 
-
-	1 halt.
 	#( 'PATH' 'HOME' 'USER' 'LOGNAME' 'SHELL' 'LANG' 'LC_ALL' 'LC_CTYPE'
 	   'TERM' 'TMPDIR' 'XDG_CONFIG_HOME' 'XDG_DATA_HOME' 'XDG_CACHE_HOME'
 	   'OPENAI_API_KEY' 'ANTHROPIC_API_KEY' 'GEMINI_API_KEY'
 	   'DEEPSEEK_API_KEY' 'MISTRAL_API_KEY' 'CODEX_HOME' ) do: [ :varName |
 		[ | value |
-		  value := OSEnvironment current
-			           at: varName
-			           ifAbsent: [ nil ].
+		  value := self readEnvironmentVariable: varName.
 		  value ifNotNil: [
 			  aSubprocess environmentAt: varName put: value ] ]
 			on: Error
@@ -374,6 +370,22 @@ ChatPharoMCPServer >> name: aString [
 ChatPharoMCPServer >> prompts [
 
 	^ prompts ifNil: [ prompts := OrderedCollection new ]
+]
+
+{ #category : 'accessing' }
+ChatPharoMCPServer >> readEnvironmentVariable: varName [
+	"Read a single environment variable without triggering full-environment
+	enumeration. Some Pharo images raise 'OSEnvironment >> #defaultEncoding'
+	when the environment is enumerated, so we try several strategies and
+	return nil if none succeed."
+
+	[ ^ OSEnvironment current at: varName ifAbsent: [ nil ] ]
+		on: Error do: [ :e | "fall through" ].
+
+	[ ^ Smalltalk os environment at: varName ifAbsent: [ nil ] ]
+		on: Error do: [ :e | "fall through" ].
+
+	^ nil
 ]
 
 { #category : 'private' }
