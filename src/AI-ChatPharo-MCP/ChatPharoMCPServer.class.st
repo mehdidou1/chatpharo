@@ -93,17 +93,45 @@ ChatPharoMCPServer >> connectionTime [
 ]
 
 { #category : 'accessing' }
+ChatPharoMCPServer >> copyEssentialEnvironmentVarsTo: aSubprocess [
+
+
+	1 halt.
+	#( 'PATH' 'HOME' 'USER' 'LOGNAME' 'SHELL' 'LANG' 'LC_ALL' 'LC_CTYPE'
+	   'TERM' 'TMPDIR' 'XDG_CONFIG_HOME' 'XDG_DATA_HOME' 'XDG_CACHE_HOME'
+	   'OPENAI_API_KEY' 'ANTHROPIC_API_KEY' 'GEMINI_API_KEY'
+	   'DEEPSEEK_API_KEY' 'MISTRAL_API_KEY' 'CODEX_HOME' ) do: [ :varName |
+		[ | value |
+		  value := OSEnvironment current
+			           at: varName
+			           ifAbsent: [ nil ].
+		  value ifNotNil: [
+			  aSubprocess environmentAt: varName put: value ] ]
+			on: Error
+			do: [ :e | "ignore vars we cannot read" ] ]
+]
+
+{ #category : 'accessing' }
 ChatPharoMCPServer >> createProcess [
 	"Create and return the OS process for this MCP server"
 
-	| fullCommand |
-	fullCommand := self command , ' ' , (' ' join: self arguments).
-
-	^ OSSUnixSubprocess new
+	| subprocess |
+	subprocess := OSSUnixSubprocess new
 		command: self command;
 		arguments: self arguments;
-		addAllEnvVariablesFromParentWithoutOverride;
-		yourself
+		yourself.
+
+	"Inherit the parent process' environment variables. Some Pharo images
+	raise 'OSEnvironment >> #defaultEncoding' (or similar) when enumerating
+	env vars – fall back to copying a safe subset of commonly-needed
+	variables so the subprocess can still be launched."
+	[ self inheritParentEnvironmentInto: subprocess ]
+		on: Error
+		do: [ :e |
+			self log: 'Falling back to essential env vars (' , e messageText , ')'.
+			self copyEssentialEnvironmentVarsTo: subprocess ].
+
+	^ subprocess
 ]
 
 { #category : 'accessing' }
@@ -233,6 +261,12 @@ ChatPharoMCPServer >> fetchCapabilities [
 		ifAbsent: [ prompts := OrderedCollection new ]
 ]
 
+{ #category : 'accessing' }
+ChatPharoMCPServer >> inheritParentEnvironmentInto: aSubprocess [
+
+	aSubprocess addAllEnvVariablesFromParentWithoutOverride
+]
+
 { #category : 'private' }
 ChatPharoMCPServer >> initialize [
 
@@ -311,6 +345,17 @@ ChatPharoMCPServer >> isError [
 ChatPharoMCPServer >> lastError [
 
 	^ lastError ifNil: [ lastError := '' ]
+]
+
+{ #category : 'accessing' }
+ChatPharoMCPServer >> log: aMessage [
+
+	[ ChatPharoLogger logSystem: 'MCP server: ' , aMessage
+		details: (Dictionary new
+			at: 'server' put: self name;
+			yourself) ]
+		on: Error
+		do: [ :e | "logging is best-effort" ]
 ]
 
 { #category : 'private' }
